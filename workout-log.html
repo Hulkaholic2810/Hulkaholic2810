@@ -13,39 +13,49 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
 <style>
-/* Layout: a plain bullet-journal page. Rows are 40px; set numbers sit in a 36px left column. */
+/* Layout: a bullet-journal page in a choice of papers. Rows are 40px; set numbers sit in a 36px left column. */
 :root {
-  --paper: #F9F8F6;
-  --ink: #1A1A1A;
-  --slate: #7A7872;
-  --hair: #E2E0D8;
+  --paper: #F9F8F6; --ink: #1A1A1A; --slate: #7A7872; --hair: #E2E0D8; --dot: #D3D1C9; --scrim: rgba(26, 26, 26, .16);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.27 0 0 0 0 0.22 0 0 0 1.0 -0.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29' opacity='0.32'/%3E%3C/svg%3E");
   --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --row: 40px;
   --bul: 36px;
-  --scrim: rgba(26, 26, 26, .16);
-  /* paper grain: fine fibre noise drawn by an inline SVG filter */
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.27 0 0 0 0 0.22 0 0 0 1.0 -0.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29' opacity='0.32'/%3E%3C/svg%3E");
+  --tex: var(--grain); --tex-size: 200px 200px; --panel-tex: var(--grain);
   color-scheme: light;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-/* Dark ink: chosen in Menu › Settings › Appearance. "Auto" follows the device (or the host's theme when it sets one). */
-:root[data-ink="dark"], :root[data-ink="auto"][data-theme="dark"] {
-  --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --scrim: rgba(0, 0, 0, .5);
+/* Paper: Menu › Settings › Paper. data-tone is day / night / auto (auto follows the device, or the host's theme
+   when it sets one); data-paper picks the texture. Swatch chips reuse the same rules to preview each paper. */
+.chip.day {
+  --paper: #F9F8F6; --ink: #1A1A1A; --slate: #7A7872; --hair: #E2E0D8; --dot: #D3D1C9; --scrim: rgba(26, 26, 26, .16);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.27 0 0 0 0 0.22 0 0 0 1.0 -0.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29' opacity='0.32'/%3E%3C/svg%3E");
+}
+:root[data-tone="night"], :root[data-tone="auto"][data-theme="dark"], .chip.night {
+  --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --dot: #3A3934; --scrim: rgba(0, 0, 0, .5);
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.93 0 0 0 0 0.88 0 0 0 1.0 -0.38'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29' opacity='0.16'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-ink="auto"]:not([data-theme="light"]) {
-    --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --scrim: rgba(0, 0, 0, .5);
+  :root[data-tone="auto"]:not([data-theme="light"]) {
+    --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --dot: #3A3934; --scrim: rgba(0, 0, 0, .5);
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.93 0 0 0 0 0.88 0 0 0 1.0 -0.38'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29' opacity='0.16'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
 }
+[data-paper="grain"] { --tex: var(--grain); --tex-size: 200px 200px; --panel-tex: var(--grain); }
+[data-paper="dots"] { --tex: radial-gradient(circle at center, var(--dot) 0.9px, transparent 1.3px); --tex-size: 20px 20px; --panel-tex: none; }
+[data-paper="ruled"], [data-paper="plain"] { --tex: none; --tex-size: auto; --panel-tex: none; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { background-color: var(--paper); background-image: var(--grain); background-size: 200px 200px; }
+html, body { background-color: var(--paper); background-image: var(--tex); background-size: var(--tex-size); background-position: 10px 10px; }
+/* ruled paper: each writing line gets its own rule, so entries sit on the lines */
+:root[data-paper="ruled"] .ex-head, :root[data-paper="ruled"] .set-row, :root[data-paper="ruled"] .add-ex, :root[data-paper="ruled"] .title {
+  background-image: linear-gradient(var(--hair), var(--hair)); background-size: 100% 1px; background-repeat: no-repeat; background-position: 0 calc(100% - 8px);
+}
+:root[data-paper="ruled"] .set-row { background-size: calc(100% - 20px) 1px; background-position: 10px calc(100% - 8px); }
+:root[data-paper="ruled"] .blank { background-image: repeating-linear-gradient(to bottom, transparent 0 31px, var(--hair) 31px 32px, transparent 32px 40px); }
 body {
   margin: 0; color: var(--ink);
   font: 16px/1.4 var(--serif);
@@ -184,7 +194,7 @@ input:focus, input:focus-visible { outline: none; }
 /* ---------- rest bar ---------- */
 .restbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  background-color: var(--paper); background-image: var(--grain); background-size: 200px 200px;
+  background-color: var(--paper); background-image: var(--panel-tex); background-size: 200px 200px;
   border-top: 1px solid var(--hair);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -223,7 +233,7 @@ input:focus, input:focus-visible { outline: none; }
 .drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; width: min(88vw, 380px);
   display: flex; flex-direction: column;
-  background-color: var(--paper); background-image: var(--grain); background-size: 200px 200px;
+  background-color: var(--paper); background-image: var(--panel-tex); background-size: 200px 200px;
   border-left: 1px solid var(--hair);
   padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
   transform: translateX(100%); transition: transform .26s cubic-bezier(.3, .7, .2, 1);
@@ -262,6 +272,20 @@ input:focus, input:focus-visible { outline: none; }
 .doc ul { margin: 0 0 8px; padding-left: 18px; }
 .doc .stamp { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--slate); }
 .doc .app-name { font-family: var(--serif); font-size: 28px; font-weight: 500; margin: 8px 0 0; line-height: 1.2; }
+.swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 10px; margin-top: 8px; }
+.sw-row { grid-column: 1 / -1; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; color: var(--slate); margin-top: 6px; }
+.sw { --sel: var(--ink); display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; font-family: var(--mono); font-size: 10.5px; color: var(--slate); text-align: center; }
+.chip {
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 1px; aspect-ratio: 1 / 1.15; padding: 6px 7px;
+  border: 1px solid var(--hair); border-radius: 4px; text-align: left; color: var(--ink);
+  background-color: var(--paper); background-image: var(--tex); background-size: var(--tex-size); background-position: 5px 5px;
+}
+.chip[data-paper="dots"] { background-size: 10px 10px; }
+.chip[data-paper="ruled"] { background-image: repeating-linear-gradient(to bottom, transparent 0 11px, var(--hair) 11px 12px); background-position: 0 0; }
+.chip .cs-a { font-family: var(--serif); font-size: 19px; font-weight: 500; line-height: 1; }
+.chip .cs-n { font-family: var(--mono); font-size: 9.5px; color: var(--slate); }
+.sw[aria-checked="true"] { color: var(--ink); font-weight: 500; }
+.sw[aria-checked="true"] .chip { outline: 1.5px solid var(--sel); outline-offset: 2px; }
 .danger {
   margin-top: 12px; min-height: 44px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 2px;
   font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
@@ -278,11 +302,18 @@ input:focus, input:focus-visible { outline: none; }
 }
 </style>
 <script>
-  // apply the saved appearance before the page paints, so dark mode doesn't flash white
-  try {
-    const t = (JSON.parse(localStorage.getItem('pocketlog.v2')) || {}).theme;
-    document.documentElement.setAttribute('data-ink', t === 'dark' || t === 'auto' ? t : 'light');
-  } catch (e) { document.documentElement.setAttribute('data-ink', 'light'); }
+  // apply the saved paper before the page paints, so a night paper doesn't flash white
+  (function () {
+    var tone = 'day', paper = 'grain';
+    try {
+      var st = JSON.parse(localStorage.getItem('pocketlog.v2')) || {};
+      if (st.tone) tone = st.followDevice ? 'auto' : (st.tone === 'night' ? 'night' : 'day');
+      else tone = st.theme === 'dark' ? 'night' : st.theme === 'auto' ? 'auto' : 'day';
+      if (['grain', 'dots', 'ruled', 'plain'].indexOf(st.paper) > -1) paper = st.paper;
+    } catch (e) {}
+    document.documentElement.setAttribute('data-tone', tone);
+    document.documentElement.setAttribute('data-paper', paper);
+  })();
 </script>
 </head>
 <body>
@@ -375,7 +406,11 @@ input:focus, input:focus-visible { outline: none; }
     s.prs = s.prs && typeof s.prs === 'object' ? s.prs : {};
     s.autoRest = s.autoRest !== false;
     s.sound = s.sound !== false;
-    s.theme = s.theme === 'dark' || s.theme === 'auto' ? s.theme : 'light';
+    if (!s.tone) { s.tone = s.theme === 'dark' ? 'night' : 'day'; s.followDevice = s.theme === 'auto'; } // from the Light/Dark/Auto setting
+    delete s.theme;
+    s.tone = s.tone === 'night' ? 'night' : 'day';
+    s.followDevice = !!s.followDevice;
+    s.paper = ['grain', 'dots', 'ruled', 'plain'].includes(s.paper) ? s.paper : 'grain';
     for (const k of Object.keys(s.days)) {
       const d = s.days[k];
       if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !d || typeof d !== 'object') { delete s.days[k]; continue; }
@@ -985,14 +1020,28 @@ input:focus, input:focus-visible { outline: none; }
     `</div>`;
   const item = (view, label, sub) =>
     `<button type="button" data-view="${view}"><span><span class="lbl">${label}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span><span class="chev" aria-hidden="true">&gt;</span></button>`;
+  const PAPERS = [['grain', 'Grain'], ['dots', 'Dots'], ['ruled', 'Ruled'], ['plain', 'Plain']];
+  function swatches() {
+    let h = '<div class="swatches" role="radiogroup" aria-label="Paper">';
+    for (const [tone, label] of [['day', 'DAY'], ['night', 'NIGHT']]) {
+      h += `<span class="sw-row" aria-hidden="true">${label}</span>`;
+      for (const [p, name] of PAPERS) {
+        const on = state.paper === p && (state.followDevice || state.tone === tone);
+        h += `<button type="button" class="sw" role="radio" aria-checked="${on}" data-pick-paper="${p}" data-pick-tone="${tone}" aria-label="${name}, ${tone}">` +
+          `<span class="chip ${tone}" data-paper="${p}" aria-hidden="true"><span class="cs-a">Aa</span><span class="cs-n">100×8</span></span>${name}</button>`;
+      }
+    }
+    return h + '</div>';
+  }
   const VIEWS = {
     menu: { title: 'Menu', html: () => `<nav class="dr-list">` +
-      item('settings', 'Settings', 'Appearance, weight unit, rest timer') +
+      item('settings', 'Settings', 'Paper, weight unit, rest timer') +
       item('logout', 'Log out', 'Account and data on this device') +
       item('info', 'App info', 'Privacy policy, terms & conditions') + `</nav>` },
     settings: { title: 'Settings', html: () =>
-      `<section class="opt"><h3>Appearance</h3><p>Dark ink on paper, or light ink on a dark page. Auto follows your device.</p>` +
-        seg('theme', [['light', 'LIGHT'], ['dark', 'DARK'], ['auto', 'AUTO']], 'Appearance') + `</section>` +
+      `<section class="opt"><h3>Paper</h3><p>Night papers use light ink.</p>` + swatches() + `</section>` +
+      `<section class="opt"><h3>Follow device</h3><p>Use the night version of your paper when your phone is in dark mode.</p>` +
+        seg('followDevice', [[true, 'ON'], [false, 'OFF']], 'Follow device') + `</section>` +
       `<section class="opt"><h3>Weight unit</h3><p>Default for new entries. Switching converts every weight on screen.</p>` +
         seg('unit', [['kg', 'KG'], ['lb', 'LB']], 'Weight unit') + `</section>` +
       `<section class="opt"><h3>Rest timer</h3><p>Default countdown after each completed set.</p>` +
@@ -1051,10 +1100,10 @@ input:focus, input:focus-visible { outline: none; }
     $('#menuBtn').focus();
   }
   function setOption(key, raw) {
-    const val = key === 'rest' ? Number(raw) : (key === 'autoRest' || key === 'sound') ? raw === 'true' : raw;
+    const val = key === 'rest' ? Number(raw) : (key === 'autoRest' || key === 'sound' || key === 'followDevice') ? raw === 'true' : raw;
     if (state[key] === val) return;
     state[key] = val;
-    if (key === 'theme') applyTheme();
+    if (key === 'followDevice') applyTheme();
     if (key === 'unit') { recomputePRs(); render(); }
     if (key === 'rest' && timer.state === 'idle') renderBar();
     persist();
@@ -1078,6 +1127,14 @@ input:focus, input:focus-visible { outline: none; }
   drBody.addEventListener('click', (e) => {
     const v = e.target.closest('[data-view]');
     if (v) { viewStack.push(v.dataset.view); showView(); drBack.focus(); return; }
+    const pk = e.target.closest('[data-pick-paper]');
+    if (pk) {
+      state.paper = pk.dataset.pickPaper;
+      state.tone = pk.dataset.pickTone;
+      state.followDevice = false;
+      applyTheme(); persist(); showView(true);
+      return;
+    }
     const o = e.target.closest('[data-opt]');
     if (o) { setOption(o.dataset.opt, o.dataset.val); showView(true); return; }
     const er = e.target.closest('[data-erase]');
@@ -1133,7 +1190,8 @@ input:focus, input:focus-visible { outline: none; }
   });
 
   function applyTheme() {
-    document.documentElement.setAttribute('data-ink', state.theme);
+    document.documentElement.setAttribute('data-tone', state.followDevice ? 'auto' : state.tone);
+    document.documentElement.setAttribute('data-paper', state.paper);
     const m = document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
   }
