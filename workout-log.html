@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F9F8F6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- page:start -->
+<title>Pocket Lift Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+/* Layout: one ruled notebook page. Every row is one 44px rule; ink sits on the line, the margin holds the exercise order. */
+:root {
+  --paper: #F9F8F6;
+  --ink: #1A1A1A;
+  --rule: #E5E4E0;
+  --muted: #75736E;
+  --faint: #A8A59F;
+  --desk: #EFEEEA;
+  --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --line: 44px;      /* rule pitch = row height = tap target */
+  --rule-y: 31px;    /* where the ruled line sits inside each row */
+  --marg: 44px;      /* margin column */
+  color-scheme: light;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.4 var(--serif);
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+button {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+input { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 1.5px dashed var(--ink); outline-offset: 2px; }
+input:focus, input:focus-visible { outline: none; }
+
+.book { max-width: 600px; margin: 0 auto; background: var(--paper); }
+
+/* ---------- header ---------- */
+.head {
+  display: grid; gap: 6px;
+  padding-block: 22px 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.dateline { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.date { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; text-align: left; min-width: 0; }
+.dow { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--ink); }
+.dmy { font-family: var(--mono); font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; }
+.rel { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: var(--muted); }
+.navs { margin-left: auto; display: flex; align-items: center; }
+.nav {
+  width: 40px; height: 44px; display: grid; place-items: center; color: var(--muted);
+  transition: color .15s;
+}
+.nav:hover { color: var(--ink); }
+.nav svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.todaybtn {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  height: 28px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 14px; color: var(--ink);
+}
+
+.week { display: flex; gap: 0; margin-left: -8px; }
+.wd {
+  width: 38px; height: 44px; display: grid; grid-template-rows: 1fr 1fr; place-items: center;
+  font-family: var(--mono); color: var(--muted); position: relative; padding-block: 4px 8px;
+}
+.wd .l { font-size: 9.5px; letter-spacing: .1em; }
+.wd .n { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.wd.today .n { color: var(--ink); }
+.wd.sel { color: var(--ink); }
+.wd.sel .n { font-weight: 500; }
+.wd.sel::before {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: 6px; height: 1.5px; background: var(--ink);
+}
+.wd.has::after {
+  content: ""; position: absolute; top: 4px; right: 8px; width: 4px; height: 4px; border-radius: 50%; background: var(--ink);
+}
+
+.title {
+  width: 100%; border: 0; background: transparent; padding: 6px 0 2px;
+  font-family: var(--serif); font-weight: 500; font-size: 32px; line-height: 1.15; letter-spacing: -.012em;
+}
+.title::placeholder { color: var(--faint); font-style: italic; font-weight: 400; }
+.meta { display: flex; align-items: center; gap: 12px; min-height: 32px; }
+.summary { font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 0; }
+.unit {
+  margin-left: auto; font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); height: 32px; padding: 0 2px; display: inline-flex; align-items: center; gap: 4px;
+}
+.unit b { font-weight: 500; color: var(--ink); }
+.sample {
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.5;
+  display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding-top: 4px;
+}
+.sample button { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; min-height: 32px; }
+
+/* ---------- ruled sheet ---------- */
+.sheet {
+  position: relative;
+  border-top: 1px solid var(--ink);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background-image: linear-gradient(to bottom,
+    transparent 0, transparent var(--rule-y),
+    var(--rule) var(--rule-y), var(--rule) calc(var(--rule-y) + 1px),
+    transparent calc(var(--rule-y) + 1px));
+  background-size: 100% var(--line);
+}
+.sheet::before {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 1px; background: var(--rule);
+  left: calc(max(16px, env(safe-area-inset-left, 0px)) + var(--marg) - 12px);
+  box-shadow: 3px 0 0 var(--rule);
+  pointer-events: none;
+}
+.row { display: grid; grid-template-columns: var(--marg) minmax(0, 1fr) auto; min-height: var(--line); }
+.mg {
+  height: var(--line); display: flex; align-items: center; justify-content: flex-end; gap: 2px;
+  padding-right: 20px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+.num { font-variant-numeric: tabular-nums; }
+.tick { width: 14px; height: 14px; overflow: visible; flex: none; margin-left: -16px; }
+.tick path {
+  fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1 2; stroke-dashoffset: 1.1; transition: stroke-dashoffset .4s cubic-bezier(.5,0,.3,1) .12s;
+}
+.complete .tick path { stroke-dashoffset: 0; }
+
+.name {
+  width: 100%; min-width: 0; height: var(--line); line-height: var(--line); border: 0; padding: 0;
+  background: transparent; border-radius: 0;
+  font-family: var(--serif); font-weight: 500; font-size: 20px; letter-spacing: -.005em;
+}
+.name::placeholder { color: var(--faint); font-style: italic; font-weight: 400; }
+.name::-webkit-calendar-picker-indicator, .name::-webkit-list-button { display: none !important; opacity: 0; }
+.side { display: flex; align-items: center; height: var(--line); padding-left: 8px; }
+.tag, .rm { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.rm { display: none; height: var(--line); padding: 0 2px 0 8px; color: var(--ink); }
+.name-row:focus-within .rm { display: inline-flex; align-items: center; }
+.name-row:focus-within .tag { display: none; }
+
+.flow {
+  grid-column: 2 / span 2; display: flex; flex-wrap: wrap; align-items: center; column-gap: 4px;
+  min-width: 0; margin-left: -7px;
+}
+.set, .g, .lbl, .editor, .add, .copy { height: var(--line); display: inline-flex; align-items: center; }
+
+.set {
+  position: relative; padding: 0 7px; gap: .32em;
+  font-family: var(--mono); font-size: 16.5px; font-variant-numeric: tabular-nums;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+  transition: transform .12s;
+}
+.set .w, .set .r { transition: color .3s ease .16s; }
+.set .x { color: var(--muted); font-size: 13px; }
+.set.done .w, .set.done .r { color: var(--muted); }
+.set.armed { transform: translateY(-2px); }
+.strike { position: absolute; left: 3px; top: calc(50% - 7px); width: calc(100% - 6px); height: 12px; overflow: visible; pointer-events: none; }
+.strike path {
+  fill: none; stroke: var(--ink); stroke-width: 1.7; stroke-linecap: round;
+  stroke-dasharray: 1 2; stroke-dashoffset: 1.1;
+  transition: stroke-dashoffset .3s cubic-bezier(.55,.05,.3,1);
+}
+.set.done .strike path { stroke-dashoffset: 0; }
+
+.add { width: 44px; justify-content: center; color: var(--muted); }
+.add svg, .editor svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.add:hover { color: var(--ink); }
+
+.lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); padding: 0 8px 0 7px; }
+.g { font-family: var(--mono); font-size: 14.5px; color: var(--faint); padding: 0 6px; font-variant-numeric: tabular-nums; }
+.g i { font-style: normal; font-size: 12px; padding: 0 .2em; }
+.copy {
+  margin-left: auto; padding: 0 2px 0 10px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted);
+}
+.copy span { border-bottom: 1px solid var(--faint); padding-bottom: 1px; }
+.copy:hover { color: var(--ink); }
+
+.editor { gap: 2px; padding: 0 2px 0 7px; }
+.editor input {
+  height: 22px; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; background: transparent; padding: 0;
+  font-family: var(--mono); font-size: 16.5px; text-align: center; font-variant-numeric: tabular-nums;
+}
+.editor input::placeholder { color: var(--faint); font-size: 13px; }
+.editor .ew { width: 5ch; }
+.editor .er { width: 4ch; }
+.editor .x { font-family: var(--mono); color: var(--muted); font-size: 13px; padding: 0 4px; }
+.editor button { width: 40px; height: var(--line); display: grid; place-items: center; color: var(--ink); }
+.editor .del { color: var(--muted); width: 36px; }
+
+.blank { min-height: calc(var(--line) * 9); cursor: text; }
+.ph {
+  height: var(--line); display: inline-flex; align-items: center; justify-self: start;
+  font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--faint);
+}
+.blank .ph:hover { color: var(--muted); }
+
+/* ---------- footer, toast ---------- */
+.foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px;
+  padding-block: 18px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--muted);
+}
+.foot .hint { flex-basis: 100%; color: var(--faint); }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  max-width: calc(100% - 32px); display: flex; align-items: center; gap: 14px;
+  background: var(--ink); color: var(--paper); padding: 6px 6px 6px 16px; border-radius: 3px;
+  font-family: var(--mono); font-size: 12.5px; box-shadow: 0 8px 24px -10px rgba(26,26,26,.5);
+  animation: rise .22s ease-out;
+}
+.toast button { color: var(--paper); text-decoration: underline; text-underline-offset: 3px; min-height: 36px; padding: 0 10px; }
+@keyframes rise { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* page turn: the rules stay, the ink moves */
+@keyframes inkNext { from { opacity: 0; transform: translateX(14px); } }
+@keyframes inkPrev { from { opacity: 0; transform: translateX(-14px); } }
+.turn-next .sheet > *, .turn-next .title, .turn-next .summary { animation: inkNext .24s ease-out; }
+.turn-prev .sheet > *, .turn-prev .title, .turn-prev .summary { animation: inkPrev .24s ease-out; }
+
+@media (min-width: 700px) {
+  html, body { background: var(--desk); }
+  .book {
+    margin-block: 40px; border: 1px solid var(--rule); border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(26,26,26,.04), 0 18px 40px -22px rgba(26,26,26,.22);
+  }
+  .head { padding-top: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; transition-delay: 0s !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="book" id="book">
+  <header class="head">
+    <div class="dateline">
+      <div class="date" id="dateBox">
+        <span class="dow" id="dow"></span>
+        <span class="dmy" id="dmy"></span>
+        <span class="rel" id="rel"></span>
+      </div>
+      <div class="navs">
+        <button type="button" class="todaybtn" id="todayBtn" hidden>Today</button>
+        <button type="button" class="nav" id="prev" aria-label="Previous day"><svg viewBox="0 0 16 16"><path d="M10 3 L5 8 L10 13"/></svg></button>
+        <button type="button" class="nav" id="next" aria-label="Next day"><svg viewBox="0 0 16 16"><path d="M6 3 L11 8 L6 13"/></svg></button>
+      </div>
+    </div>
+    <nav class="week" id="week" aria-label="This week"></nav>
+    <input class="title" id="title" placeholder="Untitled session" autocomplete="off" maxlength="60" enterkeyhint="done" aria-label="Workout title">
+    <div class="meta">
+      <span class="summary" id="summary"></span>
+      <button type="button" class="unit" id="unit"></button>
+    </div>
+    <div class="sample" id="sample" hidden>
+      <span>These pages hold sample entries.</span>
+      <button type="button" id="clearSample">Clear samples</button>
+    </div>
+  </header>
+
+  <main class="sheet" id="sheet" aria-label="Workout log"></main>
+
+  <footer class="foot">
+    <span id="pageNo"></span>
+    <span id="saveNote"></span>
+    <span class="hint">Tap a set to check it off · hold to edit · swipe to turn the page</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="undo">Undo</button></div>
+<datalist id="names"></datalist>
+
+<script>
+(() => {
+  'use strict';
+  const KEY = 'pocketlog.v1';
+  const $ = (s) => document.querySelector(s);
+  const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ICON_PLUS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg>';
+  const ICON_OK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 8.6 L6.3 12 L13.4 3.8"/></svg>';
+  const ICON_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>';
+
+  /* ---------- dates ---------- */
+  const pad = (n) => String(n).padStart(2, '0');
+  const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parse = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (k, n) => { const d = parse(k); d.setDate(d.getDate() + n); return keyOf(d); };
+  const todayKey = () => keyOf(new Date());
+  const dayDiff = (a, b) => Math.round((parse(a) - parse(b)) / 864e5);
+  const uid = () => Math.random().toString(36).slice(2, 10);
+
+  /* ---------- storage ---------- */
+  let storageOK = true;
+  function load() {
+    try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
+    catch (e) { storageOK = false; return null; }
+  }
+  function normalize(s) {
+    if (!s || typeof s !== 'object' || !s.days || typeof s.days !== 'object') return null;
+    s.unit = s.unit === 'kg' ? 'kg' : 'lb';
+    for (const k of Object.keys(s.days)) {
+      const d = s.days[k];
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !d || typeof d !== 'object') { delete s.days[k]; continue; }
+      d.title = typeof d.title === 'string' ? d.title : '';
+      d.ex = Array.isArray(d.ex) ? d.ex.filter(Boolean) : [];
+      for (const e of d.ex) {
+        e.id = e.id || uid();
+        e.name = typeof e.name === 'string' ? e.name : '';
+        e.sets = Array.isArray(e.sets) ? e.sets.filter(x => x && x.r > 0) : [];
+        for (const st of e.sets) {
+          st.id = st.id || uid();
+          st.w = (typeof st.w === 'number' && isFinite(st.w)) ? st.w : null;
+          st.r = Math.round(st.r);
+          st.done = !!st.done;
+        }
+      }
+    }
+    return s;
+  }
+  function seed() {
+    const mk = (arr, doneN) => arr.map(([w, r], i) => ({ id: uid(), w, r, done: i < doneN }));
+    const t = todayKey(), p = addDays(t, -3);
+    return { v: 1, unit: 'lb', days: {
+      [p]: { title: 'Upper Body', sampleTitle: true, ex: [
+        { id: uid(), sample: true, name: 'Bench Press', sets: mk([[135, 8], [155, 6], [165, 5]], 3) },
+        { id: uid(), sample: true, name: 'Overhead Press', sets: mk([[95, 8], [95, 8], [100, 6]], 3) },
+        { id: uid(), sample: true, name: 'Pull-up', sets: mk([[null, 10], [null, 8], [null, 7]], 3) },
+      ] },
+      [t]: { title: 'Upper Body', sampleTitle: true, ex: [
+        { id: uid(), sample: true, name: 'Bench Press', sets: mk([[135, 8], [155, 6], [170, 4]], 2) },
+        { id: uid(), sample: true, name: 'Overhead Press', sets: [] },
+      ] },
+    } };
+  }
+
+  let state = normalize(load()) || seed();
+  let cur = todayKey();
+  let editing = null;      // { exId, setId|null }
+  let rendering = false;   // ignore focus/blur noise while DOM is swapped
+
+  function prune() {
+    for (const k of Object.keys(state.days)) {
+      const d = state.days[k];
+      if (k !== cur && !d.title && !d.ex.length) delete state.days[k];
+    }
+  }
+  function persist() {
+    clearTimeout(saveT);
+    prune();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
+    catch (e) { storageOK = false; }
+    $('#saveNote').textContent = storageOK ? 'Saved on this device' : 'Not saving: this browser blocks storage';
+  }
+  let saveT = 0;
+  const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(persist, 300); };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
+  window.addEventListener('pagehide', persist);
+
+  /* ---------- model helpers ---------- */
+  const getDay = (k) => state.days[k] || { title: '', ex: [] };
+  const ensureDay = (k) => (state.days[k] = state.days[k] || { title: '', ex: [] });
+  const findEx = (id) => getDay(cur).ex.find(e => e.id === id);
+  const isComplete = (ex) => ex.sets.length > 0 && ex.sets.every(s => s.done);
+  const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const fmtW = (w) => w == null ? 'BW' : String(Math.round(w * 100) / 100);
+  const hasLog = (d) => d && d.ex.some(e => e.sets.length || e.name.trim());
+
+  function findLast(name) {
+    const n = norm(name);
+    if (!n) return null;
+    const keys = Object.keys(state.days).filter(k => k < cur).sort().reverse();
+    for (const k of keys) {
+      const e = state.days[k].ex.find(x => norm(x.name) === n && x.sets.length);
+      if (e) return { k, sets: e.sets };
+    }
+    return null;
+  }
+  function haptic(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+  function rng(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h = h || 1;
+    return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; };
+  }
+  function strikePath(id) {
+    const r = rng(id), y = () => (5 + r() * 2.8).toFixed(2);
+    return `M1 ${y()} C 28 ${y()}, 63 ${y()}, 99 ${(4 + r() * 2.4).toFixed(2)}`;
+  }
+
+  /* ---------- elements ---------- */
+  const book = $('#book'), sheet = $('#sheet'), titleEl = $('#title'), week = $('#week');
+  const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+
+  /* ---------- header ---------- */
+  function renderHead() {
+    const d = parse(cur), diff = dayDiff(cur, todayKey());
+    $('#dow').textContent = DOW[d.getDay()];
+    $('#dmy').textContent = `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`;
+    $('#rel').textContent = diff === 0 ? 'today' : diff === -1 ? 'yesterday' : diff === 1 ? 'tomorrow'
+      : diff < 0 ? `${-diff} days ago` : `in ${diff} days`;
+    $('#todayBtn').hidden = diff === 0;
+    if (document.activeElement !== titleEl) titleEl.value = getDay(cur).title || '';
+    const start = new Date(d.getFullYear(), 0, 1);
+    $('#pageNo').textContent = 'p. ' + (Math.round((d - start) / 864e5) + 1);
+    $('#sample').hidden = !Object.values(state.days).some(x => x.ex.some(e => e.sample));
+    renderWeek();
+    updateSummary();
+    renderUnit();
+  }
+  function renderUnit() {
+    const u = state.unit, other = u === 'lb' ? 'kg' : 'lb';
+    const b = $('#unit');
+    b.innerHTML = u === 'lb' ? '<b>lb</b> / kg' : 'lb / <b>kg</b>';
+    b.setAttribute('aria-label', `Weight unit ${u}. Switch to ${other}`);
+  }
+  function renderWeek() {
+    const d = parse(cur), mon = addDays(cur, -((d.getDay() + 6) % 7)), t = todayKey();
+    week.textContent = '';
+    for (let i = 0; i < 7; i++) {
+      const k = addDays(mon, i), dd = parse(k), logged = hasLog(state.days[k]);
+      const b = el('button', 'wd' + (logged ? ' has' : '') + (k === cur ? ' sel' : '') + (k === t ? ' today' : ''),
+        `<span class="l">${'MTWTFSS'[i]}</span><span class="n">${dd.getDate()}</span>`);
+      b.type = 'button';
+      b.setAttribute('aria-label', `${DOW[dd.getDay()]} ${dd.getDate()} ${MON[dd.getMonth()]}${logged ? ', logged' : ''}`);
+      if (k === cur) b.setAttribute('aria-current', 'date');
+      b.addEventListener('click', () => { if (k !== cur) goTo(k, k > cur ? 1 : -1); });
+      week.append(b);
+    }
+  }
+  function updateSummary() {
+    const day = getDay(cur);
+    const exs = day.ex.filter(e => e.name.trim() || e.sets.length);
+    const sets = exs.flatMap(e => e.sets);
+    if (!exs.length) { $('#summary').textContent = 'Blank page'; return; }
+    const done = sets.filter(s => s.done).length;
+    const vol = sets.reduce((a, s) => a + (s.w || 0) * s.r, 0);
+    const parts = [`${exs.length} exercise${exs.length === 1 ? '' : 's'}`, `${done}/${sets.length} sets`];
+    if (vol) parts.push(`${Math.round(vol).toLocaleString('en-US')} ${state.unit}`);
+    $('#summary').textContent = parts.join(' · ');
+  }
+  function refreshNames() {
+    const seen = new Map();
+    for (const k of Object.keys(state.days).sort().reverse())
+      for (const e of state.days[k].ex) { const n = e.name.trim(); if (n && !seen.has(norm(n))) seen.set(norm(n), n); }
+    $('#names').innerHTML = [...seen.values()].map(n => `<option value="${n.replace(/"/g, '&quot;')}"></option>`).join('');
+  }
+
+  /* ---------- sheet ---------- */
+  function renderSheet(focusSel) {
+    rendering = true;
+    const day = getDay(cur);
+    sheet.textContent = '';
+    day.ex.forEach((ex, i) => sheet.append(buildEx(ex, i)));
+    const blank = el('div', 'blank');
+    const row = el('div', 'row', '<div class="mg"></div>');
+    const ph = el('button', 'ph', day.ex.length ? '+ exercise' : 'Tap a line to write an exercise');
+    ph.type = 'button';
+    ph.setAttribute('aria-label', 'Add exercise');
+    row.append(ph);
+    blank.append(row);
+    sheet.append(blank);
+    rendering = false;
+    if (focusSel) focusIn(focusSel);
+  }
+  function rerenderEx(ex, focusSel) {
+    const old = sheet.querySelector(`[data-ex="${ex.id}"]`);
+    const i = getDay(cur).ex.indexOf(ex);
+    if (!old || i < 0) { renderSheet(focusSel); return; }
+    rendering = true;
+    old.replaceWith(buildEx(ex, i));
+    rendering = false;
+    if (focusSel) focusIn(focusSel);
+    updateSummary();
+    renderWeek();
+  }
+  function focusIn(sel) {
+    const n = sheet.querySelector(sel);
+    if (!n) return;
+    n.focus();
+    if (n.select) { try { n.select(); } catch (e) {} }
+  }
+  function renumber() {
+    sheet.querySelectorAll('.ex').forEach((s, i) => { const n = s.querySelector('.num'); if (n) n.textContent = i + 1; });
+  }
+
+  function buildEx(ex, i) {
+    const sec = el('section', 'ex');
+    sec.dataset.ex = ex.id;
+    const nr = el('div', 'row name-row' + (isComplete(ex) ? ' complete' : ''),
+      `<div class="mg"><svg class="tick" viewBox="0 0 16 16" aria-hidden="true"><path pathLength="1" d="M2.4 8.8 C3.9 10 5 11.3 6.2 12.7 C8.5 9.1 10.8 6 14 3"/></svg><span class="num">${i + 1}</span></div>`);
+    const inp = el('input', 'name');
+    inp.id = 'n-' + ex.id;
+    inp.value = ex.name;
+    inp.placeholder = 'Exercise';
+    inp.autocomplete = 'off';
+    inp.spellcheck = false;
+    inp.maxLength = 60;
+    inp.setAttribute('list', 'names');
+    inp.setAttribute('enterkeyhint', 'next');
+    inp.setAttribute('autocapitalize', 'words');
+    inp.setAttribute('aria-label', `Exercise ${i + 1} name`);
+    nr.append(inp);
+    const side = el('div', 'side', ex.sample ? '<span class="tag">sample</span>' : '');
+    const rm = el('button', 'rm', 'remove');
+    rm.type = 'button'; rm.dataset.act = 'rm-ex'; rm.dataset.keep = '';
+    side.append(rm);
+    nr.append(side);
+    sec.append(nr);
+    const last = findLast(ex.name);
+    if (last) sec.append(buildLast(ex, last));
+    sec.append(buildSets(ex, last));
+    return sec;
+  }
+  function buildLast(ex, last) {
+    const row = el('div', 'row last', '<div class="mg"></div>');
+    const d = parse(last.k);
+    const f = el('div', 'flow',
+      `<span class="lbl">Last · ${d.getDate()} ${MON[d.getMonth()]}</span>` +
+      last.sets.map(s => `<span class="g">${fmtW(s.w)}<i>×</i>${s.r}</span>`).join(''));
+    if (last.sets.length > ex.sets.length) {
+      const c = el('button', 'copy', `<span>${ex.sets.length ? 'copy rest' : 'copy'}</span>`);
+      c.type = 'button'; c.dataset.act = 'copy'; c.dataset.keep = '';
+      c.setAttribute('aria-label', `Copy last workout's sets for ${ex.name}`);
+      f.append(c);
+    }
+    row.append(f);
+    return row;
+  }
+  function buildSets(ex, last) {
+    const row = el('div', 'row sets', '<div class="mg"></div>');
+    const f = el('div', 'flow');
+    const ed = editing && editing.exId === ex.id ? editing : null;
+    for (const s of ex.sets) f.append(ed && ed.setId === s.id ? buildEditor(ex, s, last) : buildChip(s));
+    if (ed && !ed.setId) f.append(buildEditor(ex, null, last));
+    if (!ed) {
+      const add = el('button', 'add', ICON_PLUS);
+      add.type = 'button'; add.dataset.act = 'add'; add.dataset.keep = '';
+      add.setAttribute('aria-label', `Add set to ${ex.name || 'exercise'}`);
+      f.append(add);
+    }
+    row.append(f);
+    return row;
+  }
+  function buildChip(s) {
+    const b = el('button', 'set' + (s.done ? ' done' : ''),
+      `<span class="w">${fmtW(s.w)}</span><span class="x">×</span><span class="r">${s.r}</span>` +
+      `<svg class="strike" viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="${strikePath(s.id)}"/></svg>`);
+    b.type = 'button';
+    b.dataset.set = s.id;
+    b.setAttribute('aria-pressed', String(s.done));
+    b.setAttribute('aria-label', `${s.w == null ? 'Bodyweight' : fmtW(s.w) + ' ' + state.unit} for ${s.r} reps`);
+    b.title = 'Tap to check off · hold to edit';
+    return b;
+  }
+  function buildEditor(ex, s, last) {
+    let pw = '', pr = '';
+    if (s) { pw = s.w == null ? '' : fmtW(s.w); pr = s.r; }
+    else {
+      const prev = ex.sets[ex.sets.length - 1] || (last && last.sets[ex.sets.length]);
+      if (prev) { pw = prev.w == null ? '' : fmtW(prev.w); pr = prev.r; }
+    }
+    const wrap = el('span', 'editor',
+      `<input class="ew" id="ew-${ex.id}" inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="${state.unit}" value="${pw}" aria-label="Weight in ${state.unit}, blank for bodyweight">` +
+      `<span class="x">×</span>` +
+      `<input class="er" id="er-${ex.id}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off" placeholder="reps" value="${pr}" aria-label="Reps">` +
+      `<button type="button" class="ok" data-act="ok" data-keep aria-label="Save set">${ICON_OK}</button>` +
+      `<button type="button" class="del" data-act="${s ? 'del' : 'cancel'}" data-keep aria-label="${s ? 'Delete set' : 'Cancel'}">${ICON_X}</button>`);
+    wrap.dataset.exid = ex.id;
+    if (s) wrap.dataset.setid = s.id;
+    return wrap;
+  }
+  function updateLastRow(ex) {
+    const sec = sheet.querySelector(`[data-ex="${ex.id}"]`);
+    if (!sec) return;
+    const last = findLast(ex.name);
+    const old = sec.querySelector('.last');
+    const next = last ? buildLast(ex, last) : null;
+    if (old && next && old.innerHTML === next.innerHTML) return;
+    if (old) old.remove();
+    if (next) sec.querySelector('.sets').before(next);
+  }
+
+  /* ---------- actions ---------- */
+  function addExercise() {
+    const day = ensureDay(cur);
+    const ex = { id: uid(), name: '', sets: [] };
+    day.ex.push(ex);
+    renderSheet('#n-' + ex.id);
+    const n = sheet.querySelector('#n-' + ex.id);
+    if (n) n.scrollIntoView({ block: 'nearest' });
+  }
+  function openEdit(ex, setId) {
+    if (!ex) return;
+    const open = sheet.querySelector('.editor');
+    if (open) commitEditor(open, false);
+    editing = { exId: ex.id, setId: setId || null };
+    rerenderEx(ex, '#ew-' + ex.id);
+  }
+  function commitEditor(wrap, explicit) {
+    if (!wrap || wrap.dataset.closed) return;
+    wrap.dataset.closed = '1';
+    const exId = wrap.dataset.exid, setId = wrap.dataset.setid || null;
+    if (editing && editing.exId === exId) editing = null;
+    const ex = findEx(exId);
+    if (!ex) return;
+    if (explicit || wrap.dataset.dirty) {
+      const wv = wrap.querySelector('.ew').value.trim().replace(',', '.');
+      const r = parseInt(wrap.querySelector('.er').value, 10);
+      const w = wv === '' ? null : parseFloat(wv);
+      if (r > 0 && r < 1000 && (w === null || (isFinite(w) && w >= 0 && w < 10000))) {
+        if (setId) { const s = ex.sets.find(x => x.id === setId); if (s) { s.w = w; s.r = r; } }
+        else { ex.sets.push({ id: uid(), w, r, done: false }); haptic(6); }
+      }
+    }
+    persist();
+    rerenderEx(ex);
+  }
+  function toggleSet(chip) {
+    const sec = chip.closest('[data-ex]'), ex = findEx(sec.dataset.ex);
+    const s = ex && ex.sets.find(x => x.id === chip.dataset.set);
+    if (!s) return;
+    s.done = !s.done;
+    chip.classList.toggle('done', s.done);
+    chip.setAttribute('aria-pressed', String(s.done));
+    sec.querySelector('.name-row').classList.toggle('complete', isComplete(ex));
+    if (s.done) haptic(8);
+    updateSummary();
+    saveSoon();
+  }
+  function copyLast(ex) {
+    const open = sheet.querySelector('.editor');
+    if (open) commitEditor(open, false);
+    const last = findLast(ex.name);
+    if (!last) return;
+    for (const s of last.sets.slice(ex.sets.length)) ex.sets.push({ id: uid(), w: s.w, r: s.r, done: false });
+    haptic(8);
+    persist();
+    rerenderEx(ex);
+  }
+  let undoData = null, toastT = 0;
+  function snapshot() { undoData = { k: cur, json: JSON.stringify(getDay(cur)) }; }
+  function toast(msg) {
+    $('#toastMsg').textContent = msg;
+    const t = $('#toast');
+    t.hidden = false;
+    clearTimeout(toastT);
+    toastT = setTimeout(() => { t.hidden = true; undoData = null; }, 5000);
+  }
+  $('#undo').addEventListener('click', () => {
+    if (!undoData) return;
+    state.days[undoData.k] = JSON.parse(undoData.json);
+    cur = undoData.k;
+    undoData = null;
+    editing = null;
+    $('#toast').hidden = true;
+    persist();
+    render();
+  });
+  function removeEx(ex) {
+    snapshot();
+    const day = ensureDay(cur);
+    day.ex = day.ex.filter(e => e !== ex);
+    if (editing && editing.exId === ex.id) editing = null;
+    persist();
+    renderSheet();
+    updateSummary();
+    renderWeek();
+    toast(`${ex.name.trim() || 'Exercise'} removed`);
+  }
+  function deleteSet(ex, setId) {
+    snapshot();
+    ex.sets = ex.sets.filter(s => s.id !== setId);
+    editing = null;
+    persist();
+    rerenderEx(ex);
+    toast('Set removed');
+  }
+  function goTo(k, dir) {
+    const open = sheet.querySelector('.editor');
+    if (open) commitEditor(open, false);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    editing = null;
+    cur = k;
+    render();
+    book.classList.remove('turn-next', 'turn-prev');
+    void book.offsetWidth;
+    book.classList.add(dir > 0 ? 'turn-next' : 'turn-prev');
+    clearTimeout(goTo.t);
+    goTo.t = setTimeout(() => book.classList.remove('turn-next', 'turn-prev'), 320);
+  }
+
+  /* ---------- events ---------- */
+  // Buttons marked data-keep don't steal focus, so an open keyboard/editor stays put until the click runs.
+  document.addEventListener('mousedown', (e) => { if (e.target.closest('[data-keep]')) e.preventDefault(); });
+  let hadFocusAtDown = false;
+  document.addEventListener('pointerdown', () => {
+    const a = document.activeElement;
+    hadFocusAtDown = !!(a && a.tagName === 'INPUT');
+  }, true);
+
+  // long-press to edit a set
+  let lp = null, suppressClick = false;
+  function disarm() { if (lp) { clearTimeout(lp.timer); lp.chip.classList.remove('armed'); } lp = null; }
+  function fireLP() {
+    if (!lp || !lp.armed) { disarm(); return false; }
+    const chip = lp.chip; disarm();
+    suppressClick = true;
+    openEdit(findEx(chip.closest('[data-ex]').dataset.ex), chip.dataset.set);
+    return true;
+  }
+  sheet.addEventListener('pointerdown', (e) => {
+    const chip = e.target.closest('.set');
+    if (!chip || e.button !== 0) return;
+    disarm();
+    suppressClick = false;
+    lp = { chip, x: e.clientX, y: e.clientY, armed: false };
+    lp.timer = setTimeout(() => { if (lp) { lp.armed = true; chip.classList.add('armed'); haptic(12); } }, 450);
+  });
+  sheet.addEventListener('pointermove', (e) => {
+    if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) disarm();
+  });
+  sheet.addEventListener('pointerup', fireLP);
+  sheet.addEventListener('pointercancel', fireLP);
+  sheet.addEventListener('contextmenu', (e) => {
+    const chip = e.target.closest('.set');
+    if (!chip) return;
+    e.preventDefault();
+    if (lp && lp.armed) return; // touch long-press: open on release
+    disarm();
+    suppressClick = true;
+    openEdit(findEx(chip.closest('[data-ex]').dataset.ex), chip.dataset.set);
+  });
+
+  sheet.addEventListener('click', (e) => {
+    const t = e.target;
+    const act = t.closest('[data-act]');
+    if (act) {
+      const sec = act.closest('[data-ex]');
+      const ex = sec && findEx(sec.dataset.ex);
+      switch (act.dataset.act) {
+        case 'add': openEdit(ex, null); break;
+        case 'copy': copyLast(ex); break;
+        case 'rm-ex': removeEx(ex); break;
+        case 'ok': commitEditor(act.closest('.editor'), true); break;
+        case 'cancel': { const w = act.closest('.editor'); w.dataset.closed = '1'; editing = null; rerenderEx(ex); break; }
+        case 'del': deleteSet(ex, act.closest('.editor').dataset.setid); break;
+      }
+      return;
+    }
+    const chip = t.closest('.set');
+    if (chip) {
+      if (suppressClick) { suppressClick = false; return; }
+      const open = sheet.querySelector('.editor');
+      if (open) { commitEditor(open, false); return; } // first tap closes the editor
+      toggleSet(chip);
+      return;
+    }
+    if (t.closest('.blank')) {
+      if (hadFocusAtDown && !t.closest('.ph')) return; // first tap just closes the keyboard
+      addExercise();
+    }
+  });
+
+  sheet.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t.classList.contains('name') && e.key === 'Enter') {
+      e.preventDefault();
+      const ex = findEx(t.closest('[data-ex]').dataset.ex);
+      if (!t.value.trim()) { t.blur(); return; }
+      ex.name = t.value.trim();
+      openEdit(ex, null);
+      return;
+    }
+    const wrap = t.closest('.editor');
+    if (wrap && t.tagName === 'INPUT') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (t.classList.contains('ew')) { const r = wrap.querySelector('.er'); r.focus(); r.select(); }
+        else commitEditor(wrap, true);
+      } else if (e.key === 'Escape') {
+        wrap.dataset.closed = '1';
+        const ex = findEx(wrap.dataset.exid);
+        editing = null;
+        if (ex) rerenderEx(ex);
+      }
+      return;
+    }
+    const chip = t.closest('.set');
+    if (chip && (e.key === 'e' || e.key === 'F2')) {
+      e.preventDefault();
+      openEdit(findEx(chip.closest('[data-ex]').dataset.ex), chip.dataset.set);
+    }
+  });
+
+  let lastT = 0;
+  sheet.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t.classList.contains('name')) {
+      const ex = findEx(t.closest('[data-ex]').dataset.ex);
+      if (!ex) return;
+      ex.name = t.value;
+      if (ex.name.trim()) delete ex.sample;
+      saveSoon();
+      updateSummary();
+      clearTimeout(lastT);
+      lastT = setTimeout(() => updateLastRow(ex), 180);
+    } else if (t.closest('.editor')) {
+      t.closest('.editor').dataset.dirty = '1';
+    }
+  });
+  sheet.addEventListener('focusin', (e) => {
+    if (e.target.closest('.editor') && e.target.select) { try { e.target.select(); } catch (err) {} }
+  });
+  sheet.addEventListener('focusout', (e) => {
+    if (rendering) return;
+    const t = e.target;
+    if (t.classList.contains('name')) {
+      const sec = t.closest('[data-ex]');
+      const ex = sec && findEx(sec.dataset.ex);
+      if (!ex || !t.isConnected) return;
+      ex.name = ex.name.trim();
+      if (!ex.name && !ex.sets.length) {
+        const day = ensureDay(cur);
+        day.ex = day.ex.filter(x => x !== ex);
+        sec.remove();
+        renumber();
+        const ph = sheet.querySelector('.ph');
+        if (ph && !day.ex.length) ph.textContent = 'Tap a line to write an exercise';
+      } else {
+        clearTimeout(lastT);
+        updateLastRow(ex);
+      }
+      persist();
+      refreshNames();
+      updateSummary();
+      renderWeek();
+      return;
+    }
+    const wrap = t.closest('.editor');
+    if (wrap) {
+      setTimeout(() => {
+        if (wrap.isConnected && !wrap.dataset.closed && !wrap.contains(document.activeElement)) commitEditor(wrap, false);
+      }, 0);
+    }
+  });
+
+  titleEl.addEventListener('input', () => {
+    const d = ensureDay(cur);
+    d.title = titleEl.value;
+    delete d.sampleTitle;
+    saveSoon();
+  });
+  titleEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } });
+  titleEl.addEventListener('blur', () => { const d = ensureDay(cur); d.title = titleEl.value.trim(); titleEl.value = d.title; persist(); });
+
+  $('#prev').addEventListener('click', () => goTo(addDays(cur, -1), -1));
+  $('#next').addEventListener('click', () => goTo(addDays(cur, 1), 1));
+  $('#todayBtn').addEventListener('click', () => { const t = todayKey(); goTo(t, t > cur ? 1 : -1); });
+  $('#unit').addEventListener('click', () => {
+    state.unit = state.unit === 'lb' ? 'kg' : 'lb';
+    persist();
+    renderUnit();
+    updateSummary();
+  });
+  $('#clearSample').addEventListener('click', () => {
+    for (const k of Object.keys(state.days)) {
+      const d = state.days[k];
+      d.ex = d.ex.filter(e => !e.sample);
+      if (d.sampleTitle) { d.title = ''; delete d.sampleTitle; }
+      if (!d.ex.length && !d.title) delete state.days[k];
+    }
+    editing = null;
+    persist();
+    render();
+  });
+
+  // swipe to turn the page
+  let sw = null;
+  book.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { sw = null; return; }
+    const t = e.touches[0];
+    sw = { x: t.clientX, y: t.clientY, t: Date.now(), ok: !e.target.closest('input, .editor') };
+  }, { passive: true });
+  book.addEventListener('touchend', (e) => {
+    if (!sw || !sw.ok) { sw = null; return; }
+    const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2 && Date.now() - sw.t < 700) {
+      const dir = dx < 0 ? 1 : -1;
+      goTo(addDays(cur, dir), dir);
+    }
+    sw = null;
+  }, { passive: true });
+
+  document.addEventListener('keydown', (e) => {
+    const a = document.activeElement;
+    if (a && a.tagName === 'INPUT') return;
+    if (e.key === 'ArrowLeft') goTo(addDays(cur, -1), -1);
+    else if (e.key === 'ArrowRight') goTo(addDays(cur, 1), 1);
+  });
+
+  function render() { renderHead(); renderSheet(); refreshNames(); }
+  render();
+  persist();
+})();
+</script>
+<!-- page:end -->
+</body>
+</html>
