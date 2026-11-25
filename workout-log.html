@@ -323,6 +323,7 @@ input:focus, input:focus-visible { outline: none; }
       if (['grain', 'dots', 'ruled', 'plain'].indexOf(st.paper) > -1) paper = st.paper;
     } catch (e) {}
     document.documentElement.setAttribute('data-tone', tone);
+    try { if (window.PocketLogApp) document.documentElement.setAttribute('data-theme', PocketLogApp.isNight() ? 'dark' : 'light'); } catch (e) {}
     document.documentElement.setAttribute('data-paper', paper);
   })();
 </script>
@@ -1221,8 +1222,15 @@ input:focus, input:focus-visible { outline: none; }
     document.documentElement.setAttribute('data-tone', state.followDevice ? 'auto' : state.tone);
     document.documentElement.setAttribute('data-paper', state.paper);
     const m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
+    const cs = getComputedStyle(document.documentElement), paperHex = cs.getPropertyValue('--paper').trim();
+    if (m) m.setAttribute('content', paperHex);
+    try { if (window.PocketLogApp) PocketLogApp.setBars(paperHex, cs.colorScheme === 'dark'); } catch (e) {}
   }
+  window.__pocketSave = () => persist();
+  window.__pocketBack = () => {
+    if (!drawer.hidden) { if (viewStack.length > 1) { viewStack.pop(); showView(); } else closeDrawer(); return; }
+    if (window.PocketLogApp) PocketLogApp.exit();
+  };
   function render() { applyTheme(); renderHead(); renderSheet(); refreshNames(); }
   recomputePRs();
   render();
