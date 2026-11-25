@@ -47,6 +47,7 @@ struct AppSettings: Codable, Equatable {
     var paper: Paper = .grain
     var tone: Tone = .day
     var followDevice = false
+    var pageSound = true
     var owner = ""
     /// set once the person has signed in or chosen to carry on without an account
     var onboarded = false
@@ -72,6 +73,7 @@ extension AppSettings {
         paper = try c.decodeIfPresent(Paper.self, forKey: .paper) ?? d.paper
         tone = try c.decodeIfPresent(Tone.self, forKey: .tone) ?? d.tone
         followDevice = try c.decodeIfPresent(Bool.self, forKey: .followDevice) ?? d.followDevice
+        pageSound = try c.decodeIfPresent(Bool.self, forKey: .pageSound) ?? d.pageSound
         owner = try c.decodeIfPresent(String.self, forKey: .owner) ?? d.owner
         onboarded = try c.decodeIfPresent(Bool.self, forKey: .onboarded) ?? d.onboarded
         account = try c.decodeIfPresent(Account.self, forKey: .account)

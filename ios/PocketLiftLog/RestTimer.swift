@@ -110,21 +110,40 @@ enum Notifier {
     }
 }
 
-/// A soft two-note chime, synthesised so the app ships no audio files.
-/// It plays alongside the user's music and respects the silent switch.
+/// Short sounds, synthesised so the app ships no audio files.
+/// They play alongside the user's music and respect the silent switch.
+enum Audio {
+    static func prepare() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.ambient, options: [.mixWithOthers])
+        try? session.setActive(true)
+    }
+
+    static func wav(_ samples: [Int16], rate: Int = 44_100) -> Data {
+        var d = Data()
+        func text(_ s: String) { d.append(contentsOf: Array(s.utf8)) }
+        func u32(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+        func u16(_ v: UInt16) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+        text("RIFF"); u32(UInt32(36 + samples.count * 2)); text("WAVE")
+        text("fmt "); u32(16); u16(1); u16(1); u32(UInt32(rate)); u32(UInt32(rate * 2)); u16(2); u16(16)
+        text("data"); u32(UInt32(samples.count * 2))
+        samples.withUnsafeBytes { d.append(contentsOf: $0) }
+        return d
+    }
+}
+
+/// A soft two-note chime for the end of rest.
 enum Chime {
     private static var player: AVAudioPlayer?
 
     static func play() {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.ambient, options: [.mixWithOthers])
-        try? session.setActive(true)
-        if player == nil { player = try? AVAudioPlayer(data: wav()) }
+        Audio.prepare()
+        if player == nil { player = try? AVAudioPlayer(data: Audio.wav(samples())) }
         player?.currentTime = 0
         player?.play()
     }
 
-    private static func wav() -> Data {
+    private static func samples() -> [Int16] {
         let rate = 44_100.0, seconds = 1.6
         let count = Int(rate * seconds)
         var samples = [Int16](repeating: 0, count: count)
@@ -136,14 +155,38 @@ enum Chime {
                 samples[i] = samples[i] &+ Int16(clamping: v)
             }
         }
-        var d = Data()
-        func text(_ s: String) { d.append(contentsOf: Array(s.utf8)) }
-        func u32(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
-        func u16(_ v: UInt16) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
-        text("RIFF"); u32(UInt32(36 + count * 2)); text("WAVE")
-        text("fmt "); u32(16); u16(1); u16(1); u32(44_100); u32(88_200); u16(2); u16(16)
-        text("data"); u32(UInt32(count * 2))
-        samples.withUnsafeBytes { d.append(contentsOf: $0) }
-        return d
+        return samples
+    }
+}
+
+/// A paper swoosh for turning the page: filtered noise that brightens mid-turn, then settles.
+enum PageSound {
+    private static var player: AVAudioPlayer?
+
+    static func play() {
+        Audio.prepare()
+        if player == nil { player = try? AVAudioPlayer(data: Audio.wav(samples())) }
+        player?.currentTime = 0
+        player?.play()
+    }
+
+    private static func samples() -> [Int16] {
+        let rate = 44_100.0, seconds = 0.38
+        let count = Int(rate * seconds)
+        var out = [Int16](repeating: 0, count: count)
+        var rng = SeededRandom(seed: 11)
+        var low = 0.0, slow = 0.0
+        let b = exp(-2 * .pi * 180 / rate)
+        for i in 0..<count {
+            let p = Double(i) / rate / seconds
+            let white = Double(rng.next() % 20_001) / 10_000 - 1
+            let cutoff = 500 + 3_500 * sin(.pi * p)
+            let a = exp(-2 * .pi * cutoff / rate)
+            low = a * low + (1 - a) * white
+            slow = b * slow + (1 - b) * low
+            let envelope = pow(max(0, sin(.pi * min(1, p * 1.12))), 1.6)
+            out[i] = Int16(clamping: Int((low - slow) * envelope * 0.48 * 32_767))
+        }
+        return out
     }
 }

@@ -19,10 +19,12 @@ struct LogPage: View {
     @Environment(\.paper) private var paper
     @FocusState private var focus: Field?
     @State private var turn: CGFloat = 1
+    @State private var flips = 0
     let openMenu: () -> Void
 
     var body: some View {
         NavigationStack {
+            ZStack {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -35,8 +37,6 @@ struct LogPage: View {
                         footer
                     }
                     .padding(.horizontal, 20)
-                    .id(store.current)
-                    .transition(.asymmetric(insertion: .opacity.combined(with: .offset(x: 14 * turn)), removal: .opacity))
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: focus) { old, new in
@@ -45,6 +45,10 @@ struct LogPage: View {
                 }
             }
             .background { PaperTexture(paper: paper, palette: pal).ignoresSafeArea() }
+            .id(store.current)
+            .transition(.pageTurn(forward: turn > 0))
+            }
+            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: flips)
             .safeAreaInset(edge: .bottom, spacing: 0) { RestBar() }
             .toolbar(.hidden, for: .navigationBar)
             .toolbar {
@@ -179,7 +183,12 @@ struct LogPage: View {
         guard key != store.current else { return }
         focus = nil
         turn = key > store.current ? 1 : -1
-        withAnimation(.easeOut(duration: 0.22)) { store.current = key }
+        flips += 1
+        if store.data.settings.pageSound { PageSound.play() }
+        // set the direction first, so the page leaving uses the matching turn
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.5)) { store.current = key }
+        }
     }
 
     /// Tidy up when a field loses focus: drop an unnamed empty exercise or a set left with no numbers.

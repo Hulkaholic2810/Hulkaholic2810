@@ -157,3 +157,35 @@ struct Choice<V: Hashable>: View {
         }
     }
 }
+
+// MARK: - Page turn
+
+/// One page lifting at its left edge and folding over, with a soft shadow at the fold.
+struct PageTurn: ViewModifier {
+    let angle: Double
+    let shade: Double
+    let z: Double
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                LinearGradient(colors: [.black.opacity(shade), .black.opacity(shade * 0.25)], startPoint: .leading, endPoint: .trailing)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
+            .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), anchor: .leading, perspective: 0.55)
+            .zIndex(z)
+    }
+}
+
+extension AnyTransition {
+    /// Forward: the current page turns away to the left, revealing the next one beneath.
+    /// Back: the previous page swings in from the left over the current one.
+    static func pageTurn(forward: Bool) -> AnyTransition {
+        let over = AnyTransition.modifier(active: PageTurn(angle: -100, shade: 0.18, z: 1),
+                                          identity: PageTurn(angle: 0, shade: 0, z: 1))
+        let under = AnyTransition.modifier(active: PageTurn(angle: 0, shade: 0.06, z: 0),
+                                           identity: PageTurn(angle: 0, shade: 0, z: 0))
+        return forward ? .asymmetric(insertion: under, removal: over) : .asymmetric(insertion: over, removal: under)
+    }
+}

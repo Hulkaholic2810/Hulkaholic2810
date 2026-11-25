@@ -228,6 +228,9 @@ struct SettingsPage: View {
             section("Chime", "Play a soft chime when rest is over. Follows the silent switch.") {
                 Choice(options: [(true, "ON"), (false, "OFF")], selection: s.chime) { store.data.settings.chime = $0 }
             }
+            section("Page turn sound", "A paper swoosh when you flip to another day. Follows the silent switch.") {
+                Choice(options: [(true, "ON"), (false, "OFF")], selection: s.pageSound) { store.data.settings.pageSound = $0 }
+            }
         }
     }
 
