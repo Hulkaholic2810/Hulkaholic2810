@@ -78,7 +78,12 @@ input:focus, input:focus-visible { outline: none; }
 }
 
 /* ---------- header ---------- */
-.head { padding-block: 20px 12px; border-bottom: 1px solid var(--hair); }
+.head { padding-block: 4px 12px; border-bottom: 1px solid var(--hair); }
+.brand {
+  height: 24px; display: flex; align-items: center; justify-content: center; min-width: 0;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; color: var(--slate);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .top { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; height: var(--row); margin-inline: -12px; }
 .datenav { display: flex; align-items: center; justify-content: center; min-width: 0; }
 .menu-btn { width: 44px; height: 44px; display: grid; place-items: center; color: var(--ink); }
@@ -139,7 +144,7 @@ input:focus, input:focus-visible { outline: none; }
 }
 .set-row .num { text-align: center; font-family: var(--mono); font-size: 11.5px; color: var(--slate); }
 .check { grid-column: 7; width: 48px; height: var(--row); display: grid; place-items: center; }
-.check svg { width: 26px; height: 26px; overflow: visible; transition: transform .1s; }
+.check svg { width: 22px; height: 22px; overflow: visible; transition: transform .1s; }
 .check .box { fill: transparent; stroke: var(--slate); stroke-width: 1.2; transition: stroke .2s; }
 .check .ink {
   fill: var(--ink); transform-box: fill-box; transform-origin: center; transform: scale(0);
@@ -286,6 +291,12 @@ input:focus, input:focus-visible { outline: none; }
 .chip .cs-n { font-family: var(--mono); font-size: 9.5px; color: var(--slate); }
 .sw[aria-checked="true"] { color: var(--ink); font-weight: 500; }
 .sw[aria-checked="true"] .chip { outline: 1.5px solid var(--sel); outline-offset: 2px; }
+.field {
+  width: 100%; height: 44px; margin-top: 4px; padding: 0; border: 0; border-bottom: 1px solid var(--hair); border-radius: 0;
+  background: transparent; font-family: var(--serif); font-size: 18px; color: var(--ink);
+}
+.field::placeholder { font-style: italic; }
+.field:focus { border-bottom-color: var(--ink); }
 .danger {
   margin-top: 12px; min-height: 44px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 2px;
   font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
@@ -320,6 +331,7 @@ input:focus, input:focus-visible { outline: none; }
 
 <div class="book" id="book">
   <header class="head gut">
+    <div class="brand" id="brand">Pocket Lift Log</div>
     <div class="top">
       <span aria-hidden="true"></span>
       <div class="datenav">
@@ -406,6 +418,7 @@ input:focus, input:focus-visible { outline: none; }
     s.prs = s.prs && typeof s.prs === 'object' ? s.prs : {};
     s.autoRest = s.autoRest !== false;
     s.sound = s.sound !== false;
+    s.owner = typeof s.owner === 'string' ? s.owner.trim().slice(0, 24) : '';
     if (!s.tone) { s.tone = s.theme === 'dark' ? 'night' : 'day'; s.followDevice = s.theme === 'auto'; } // from the Light/Dark/Auto setting
     delete s.theme;
     s.tone = s.tone === 'night' ? 'night' : 'day';
@@ -543,7 +556,13 @@ input:focus, input:focus-visible { outline: none; }
   const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   /* ---------- header ---------- */
+  // the line at the very top: "Akash’s Pocket Log", or the app name until a name is set
+  function renderBrand() {
+    const n = state.owner;
+    $('#brand').textContent = n ? `${n}${/s$/i.test(n) ? '’' : '’s'} Pocket Log` : 'Pocket Lift Log';
+  }
   function renderHead() {
+    renderBrand();
     const d = parse(cur), now = new Date();
     const yr = d.getFullYear() !== now.getFullYear() ? ` ${d.getFullYear()}` : '';
     $('#date').innerHTML = `${MON[d.getMonth()]} ${d.getDate()}${yr} <span class="sep">//</span> ${DOW[d.getDay()]}`;
@@ -1035,10 +1054,12 @@ input:focus, input:focus-visible { outline: none; }
   }
   const VIEWS = {
     menu: { title: 'Menu', html: () => `<nav class="dr-list">` +
-      item('settings', 'Settings', 'Paper, weight unit, rest timer') +
+      item('settings', 'Settings', 'Name, paper, weight unit, rest timer') +
       item('logout', 'Log out', 'Account and data on this device') +
       item('info', 'App info', 'Privacy policy, terms & conditions') + `</nav>` },
     settings: { title: 'Settings', html: () =>
+      `<section class="opt"><h3>Your name</h3><p>Shown at the top of your log.</p>` +
+        `<input class="field" id="ownerName" maxlength="24" autocomplete="given-name" autocapitalize="words" enterkeyhint="done" placeholder="e.g. Sam" aria-label="Your name" value="${esc(state.owner)}">` + `</section>` +
       `<section class="opt"><h3>Paper</h3><p>Night papers use light ink.</p>` + swatches() + `</section>` +
       `<section class="opt"><h3>Follow device</h3><p>Use the night version of your paper when your phone is in dark mode.</p>` +
         seg('followDevice', [[true, 'ON'], [false, 'OFF']], 'Follow device') + `</section>` +
@@ -1146,6 +1167,13 @@ input:focus, input:focus-visible { outline: none; }
       eraseT = setTimeout(() => { er.classList.remove('armed'); er.textContent = "Erase this device's log"; }, 4000);
     }
   });
+  drBody.addEventListener('input', (e) => {
+    if (e.target.id !== 'ownerName') return;
+    state.owner = e.target.value.trim().slice(0, 24);
+    renderBrand();
+    saveSoon();
+  });
+  drBody.addEventListener('keydown', (e) => { if (e.target.id === 'ownerName' && e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
   drawer.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { closeDrawer(); return; }
     if (e.key !== 'Tab') return; // keep focus inside the open menu
