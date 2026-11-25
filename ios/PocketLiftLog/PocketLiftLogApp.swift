@@ -36,9 +36,14 @@ struct RootView: View {
         ZStack(alignment: .trailing) {
             PaperTexture(paper: settings.paper, palette: palette).ignoresSafeArea()
 
-            LogPage(openMenu: { withAnimation(.easeOut(duration: 0.26)) { menuOpen = true } })
+            if settings.onboarded {
+                LogPage(openMenu: { withAnimation(.easeOut(duration: 0.26)) { menuOpen = true } })
+                    .transition(.opacity)
+            } else {
+                SignInView().transition(.opacity)
+            }
 
-            if menuOpen {
+            if menuOpen && settings.onboarded {
                 Color.black.opacity(palette.night ? 0.5 : 0.16)
                     .ignoresSafeArea()
                     .onTapGesture { closeMenu() }
@@ -59,7 +64,10 @@ struct RootView: View {
         .preferredColorScheme(settings.followDevice ? nil : (tone == .night ? .dark : .light))
         .tint(palette.ink)
         .onChange(of: store.data) { store.changed() }
-        .onChange(of: scenePhase) { if scenePhase != .active { store.save() } }
+        .onChange(of: scenePhase) {
+            if scenePhase == .active { store.checkAppleCredential() } else { store.save() }
+        }
+        .onChange(of: settings.onboarded) { if !settings.onboarded { menuOpen = false } }
     }
 
     private func closeMenu() {

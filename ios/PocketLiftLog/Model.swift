@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 import Observation
 
@@ -47,6 +48,34 @@ struct AppSettings: Codable, Equatable {
     var tone: Tone = .day
     var followDevice = false
     var owner = ""
+    /// set once the person has signed in or chosen to carry on without an account
+    var onboarded = false
+    var account: Account?
+}
+
+/// A Sign in with Apple identity. Kept only on this iPhone; there is no server.
+struct Account: Codable, Equatable {
+    var appleUserID: String
+    var name: String
+    var email: String?
+}
+
+extension AppSettings {
+    /// Tolerant decoding: settings saved by an older version (without newer keys) still load.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = AppSettings()
+        unit = try c.decodeIfPresent(WeightUnit.self, forKey: .unit) ?? d.unit
+        rest = try c.decodeIfPresent(Int.self, forKey: .rest) ?? d.rest
+        autoRest = try c.decodeIfPresent(Bool.self, forKey: .autoRest) ?? d.autoRest
+        chime = try c.decodeIfPresent(Bool.self, forKey: .chime) ?? d.chime
+        paper = try c.decodeIfPresent(Paper.self, forKey: .paper) ?? d.paper
+        tone = try c.decodeIfPresent(Tone.self, forKey: .tone) ?? d.tone
+        followDevice = try c.decodeIfPresent(Bool.self, forKey: .followDevice) ?? d.followDevice
+        owner = try c.decodeIfPresent(String.self, forKey: .owner) ?? d.owner
+        onboarded = try c.decodeIfPresent(Bool.self, forKey: .onboarded) ?? d.onboarded
+        account = try c.decodeIfPresent(Account.self, forKey: .account)
+    }
 }
 
 struct LogData: Codable, Equatable {
@@ -375,6 +404,41 @@ final class LogStore {
         data = LogData()
         current = DayKey.today
         showToast("Log erased from this device", undo: before)
+    }
+
+    // MARK: account
+
+    func signIn(appleUserID: String, name: String, givenName: String, email: String?) {
+        var s = data.settings
+        // Apple shares the name and email only on the first sign-in; keep what we had for the same person
+        let previous = s.account?.appleUserID == appleUserID ? s.account : nil
+        s.account = Account(appleUserID: appleUserID,
+                            name: name.isEmpty ? (previous?.name ?? "") : name,
+                            email: email ?? previous?.email)
+        if s.owner.trimmingCharacters(in: .whitespaces).isEmpty && !givenName.isEmpty {
+            s.owner = String(givenName.prefix(24))
+        }
+        s.onboarded = true
+        data.settings = s
+    }
+
+    func continueAsGuest() {
+        data.settings.onboarded = true
+    }
+
+    /// Back to the sign-in page. The log stays on this iPhone.
+    func signOut() {
+        data.settings.account = nil
+        data.settings.onboarded = false
+    }
+
+    /// If the person stopped using Sign in with Apple for this app (Settings › Apple ID), sign them out.
+    func checkAppleCredential() {
+        guard let id = data.settings.account?.appleUserID else { return }
+        ASAuthorizationAppleIDProvider().getCredentialState(forUserID: id) { state, _ in
+            guard state == .revoked else { return }
+            Task { @MainActor [weak self] in self?.signOut() }
+        }
     }
 
     // MARK: toast and undo

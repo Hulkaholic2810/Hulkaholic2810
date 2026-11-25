@@ -19,3 +19,10 @@ A native SwiftUI version of the log, designed for iPhone 17 Pro (402 × 874 pt, 
 - `Theme.swift` – day and night palettes, grain / dots / ruled / plain paper, bundled JetBrains Mono and Newsreader.
 
 The iPhone app keeps its own log; it doesn't share data with the web or Android versions.
+
+## Sign in with Apple
+
+The first screen offers **Sign in with Apple** or **Continue without an account**. Signing in fills in your name for the
+top line; the log still stays on the iPhone (there is no server). To make the Apple button work you need a paid Apple
+Developer account: in Xcode, target → **Signing & Capabilities** → **+ Capability** → **Sign in with Apple**.
+With a free Apple ID the button shows a short note instead, and "Continue without an account" works as normal.

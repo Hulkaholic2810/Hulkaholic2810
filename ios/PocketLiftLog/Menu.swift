@@ -80,7 +80,7 @@ struct MenuPanel: View {
         case .menu:
             VStack(spacing: 0) {
                 row(.settings, "Settings", "Name, paper, weight unit, rest timer")
-                row(.logout, "Log out", "Account and data on this iPhone")
+                row(.logout, "Log out", store.data.settings.account.map { "Signed in\($0.name.isEmpty ? "" : " as \($0.name)")" } ?? "Not signed in")
                 row(.info, "App info", "Privacy policy, terms & conditions")
             }
         case .settings: SettingsPage()
@@ -110,8 +110,22 @@ struct MenuPanel: View {
 
     private var logout: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Pocket Lift Log doesn't use accounts yet, so there's nothing to sign out of. Your log is kept only on this iPhone.")
-            Text("To start fresh, or before you hand this phone to someone else, erase the log. This removes every workout, PR and setting stored here.")
+            if let account = store.data.settings.account {
+                Text("Signed in with Apple\(account.name.isEmpty ? "" : " as \(account.name)").")
+                if let email = account.email {
+                    Text(email).font(.mono(12)).foregroundStyle(pal.slate)
+                }
+                Text("Your log is kept on this iPhone. Logging out leaves it here and takes you back to the sign-in page.")
+                outlineButton("Log out") { store.signOut(); close() }
+            } else {
+                Text("You're using Pocket Lift Log without an account. Your log is kept only on this iPhone.")
+                outlineButton("Sign in with Apple") { store.signOut(); close() }
+            }
+
+            Rectangle().fill(pal.hair).frame(height: 1).padding(.vertical, 12)
+
+            Text("ERASE").font(.mono(11, medium: true)).tracking(1.5)
+            Text("To start fresh, or before you hand this phone to someone else, erase the log. This removes every workout, PR and setting stored here, and signs you out.")
             Button {
                 if eraseArmed {
                     store.eraseAll()
@@ -137,10 +151,22 @@ struct MenuPanel: View {
         .padding(.top, 16)
     }
 
+    private func outlineButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.mono(12)).tracking(0.7).foregroundStyle(pal.ink)
+                .padding(.horizontal, 14).frame(minHeight: 44)
+                .overlay(RoundedRectangle(cornerRadius: 2).stroke(pal.ink, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 6)
+    }
+
     private var info: some View {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.1"
         return VStack(alignment: .leading, spacing: 0) {
-            Text("Pocket Lift Log").font(.serif(28, medium: true)).foregroundStyle(pal.ink).padding(.top, 16)
+            LogoMark(ink: pal.ink, paper: pal.paper).frame(width: 64, height: 64).padding(.top, 18).padding(.leading, -8)
+            Text("Pocket Lift Log").font(.serif(28, medium: true)).foregroundStyle(pal.ink).padding(.top, 6)
             Text("Version \(version)").font(.mono(11)).foregroundStyle(pal.slate).padding(.top, 2)
             Text("A bullet-journal workout log. Write the lift, tick the set, rest, repeat. Everything stays on your iPhone and works offline.")
                 .font(.serif(15.5)).foregroundStyle(pal.ink).padding(.top, 10).padding(.bottom, 8)
@@ -275,7 +301,8 @@ struct DocPage: View {
 enum Legal {
     static let privacy: [(String, String)] = [
         ("What we collect", "Nothing is sent to us. The workouts, personal records and settings you enter are saved in the app's storage on this iPhone. We have no server that receives them."),
-        ("No tracking", "The app has no accounts, analytics, advertising or tracking. It doesn't use the network: its typefaces are built in."),
+        ("Sign in with Apple", "Signing in is optional. If you sign in with Apple, the app receives an anonymous Apple user ID and, if you choose to share them, your name and email (which can be a private relay address). They are stored only on this iPhone and never sent to us. Log out or erase the log to remove them."),
+        ("No tracking", "The app has no analytics, advertising or tracking. Apart from Sign in with Apple, it doesn't use the network: its typefaces are built in."),
         ("Notifications", "If you allow notifications, the app schedules a local \"Rest over\" alert on this iPhone when a rest timer runs. Nothing leaves the device."),
         ("Backups", "Like other app data, your log can be included in your iPhone's own iCloud or computer backups, under Apple's terms."),
         ("Your control", "You can erase everything from Menu › Log out, or by deleting the app. Deleting the app removes the log from this iPhone."),
@@ -286,6 +313,7 @@ enum Legal {
     static let terms: [(String, String)] = [
         ("Using the app", "Pocket Lift Log is a free tool for keeping your own training records. By using it you agree to these terms."),
         ("Not medical advice", "The app records the numbers you enter. It doesn't give medical, health or training advice. Talk to a qualified professional before starting a new program, and lift within your limits. You're responsible for how you train."),
+        ("Accounts", "You can use the app with or without Sign in with Apple. Signing in doesn't sync or back up your log; it stays on this iPhone."),
         ("Your data", "Your log is stored only on your iPhone. You're responsible for keeping it; we can't recover data that's been erased or lost."),
         ("No warranty", "The app is provided \"as is\", without warranties of any kind. To the extent the law allows, we aren't liable for injury, lost data or any other loss arising from its use."),
         ("Changes", "We may update these terms. The current version will always be shown here with its date."),
