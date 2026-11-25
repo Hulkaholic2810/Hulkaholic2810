@@ -168,8 +168,9 @@ struct MenuPanel: View {
             LogoMark(ink: pal.ink, paper: pal.paper).frame(width: 64, height: 64).padding(.top, 18).padding(.leading, -8)
             Text("Pocket Lift Log").font(.serif(28, medium: true)).foregroundStyle(pal.ink).padding(.top, 6)
             Text("Version \(version)").font(.mono(11)).foregroundStyle(pal.slate).padding(.top, 2)
+            Text("The quiet logbook for loud lifts.").font(.serif(17, italic: true)).foregroundStyle(pal.ink).padding(.top, 10)
             Text("A bullet-journal workout log. Write the lift, tick the set, rest, repeat. Everything stays on your iPhone and works offline.")
-                .font(.serif(15.5)).foregroundStyle(pal.ink).padding(.top, 10).padding(.bottom, 8)
+                .font(.serif(15.5)).foregroundStyle(pal.ink).padding(.top, 6).padding(.bottom, 8)
             row(.privacy, "Privacy Policy")
             row(.terms, "Terms & Conditions")
         }

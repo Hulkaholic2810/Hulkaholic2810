@@ -43,7 +43,7 @@ struct SignInView: View {
             Text("Pocket Lift Log")
                 .font(.serif(34, medium: true)).foregroundStyle(pal.ink)
                 .padding(.top, 18)
-            Text("WRITE THE LIFT. TICK THE SET.")
+            Text("THE QUIET LOGBOOK FOR LOUD LIFTS.")
                 .font(.mono(10.5)).tracking(2.3).foregroundStyle(pal.slate)
                 .padding(.top, 10)
             Spacer()
