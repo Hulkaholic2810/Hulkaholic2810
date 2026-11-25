@@ -374,6 +374,7 @@ input:focus, input:focus-visible { outline: none; }
           st.u = st.u === 'lb' || st.u === 'kg' ? st.u : s.unit;
           st.r = Number.isFinite(st.r) && st.r > 0 ? Math.round(st.r) : null;
           st.done = !!st.done && st.r != null;
+          if (!st.done || !Number.isFinite(st.doneAt)) delete st.doneAt;
         }
       }
     }
@@ -451,21 +452,29 @@ input:focus, input:focus-visible { outline: none; }
     }
     return null;
   }
-  // Walk every completed set in date order; a set is a PR when it beats the best weight logged before it.
+  // Walk every completed set in the order it was ticked, whatever page it's on: a set is a PR when it
+  // beats the best weight completed before it. Sets ticked before tick times were kept fall back to page order.
   function recomputePRs() {
-    const best = {};
-    prMap = new Map();
+    const all = [];
     for (const k of Object.keys(state.days).sort()) {
+      const base = parse(k).getTime();
+      let i = 0;
       for (const e of state.days[k].ex) {
         const n = norm(e.name);
-        if (!n) continue;
         for (const s of e.sets) {
-          if (!s.done || s.w == null) continue;
-          const kg = toKg(s.w, s.u), b = best[n];
-          if (b && kg > b.kg + 1e-6) prMap.set(s.id, { w: b.w, u: b.u });
-          if (!b || kg > b.kg + 1e-6) best[n] = { kg, w: s.w, u: s.u, date: k, name: e.name.trim() };
+          i++;
+          if (!n || !s.done || s.w == null) continue;
+          all.push({ t: Number.isFinite(s.doneAt) ? s.doneAt : base + i, n, s, k, name: e.name.trim() });
         }
       }
+    }
+    all.sort((a, b) => a.t - b.t);
+    const best = {};
+    prMap = new Map();
+    for (const { n, s, k, name } of all) {
+      const kg = toKg(s.w, s.u), b = best[n];
+      if (b && kg > b.kg + 1e-6) prMap.set(s.id, { w: b.w, u: b.u });
+      if (!b || kg > b.kg + 1e-6) best[n] = { kg, w: s.w, u: s.u, date: k, name };
     }
     state.prs = best;
   }
@@ -664,6 +673,7 @@ input:focus, input:focus-visible { outline: none; }
     if (!s.done && !s.r) { focusIn('#r-' + s.id); return; } // need reps before it counts
     unlockAudio();
     s.done = !s.done;
+    if (s.done) s.doneAt = Date.now(); else delete s.doneAt;
     btn.classList.toggle('done', s.done);
     btn.setAttribute('aria-pressed', String(s.done));
     recomputePRs();
@@ -888,6 +898,7 @@ input:focus, input:focus-visible { outline: none; }
         s.r = r > 0 && r < 1000 ? r : null;
         if (!s.r && s.done) {
           s.done = false;
+          delete s.doneAt;
           const b = t.closest('.set-row').querySelector('.check');
           b.classList.remove('done'); b.setAttribute('aria-pressed', 'false');
         }
