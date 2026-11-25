@@ -158,35 +158,3 @@ enum Chime {
         return samples
     }
 }
-
-/// A paper swoosh for turning the page: filtered noise that brightens mid-turn, then settles.
-enum PageSound {
-    private static var player: AVAudioPlayer?
-
-    static func play() {
-        Audio.prepare()
-        if player == nil { player = try? AVAudioPlayer(data: Audio.wav(samples())) }
-        player?.currentTime = 0
-        player?.play()
-    }
-
-    private static func samples() -> [Int16] {
-        let rate = 44_100.0, seconds = 0.38
-        let count = Int(rate * seconds)
-        var out = [Int16](repeating: 0, count: count)
-        var rng = SeededRandom(seed: 11)
-        var low = 0.0, slow = 0.0
-        let b = exp(-2 * .pi * 180 / rate)
-        for i in 0..<count {
-            let p = Double(i) / rate / seconds
-            let white = Double(rng.next() % 20_001) / 10_000 - 1
-            let cutoff = 500 + 3_500 * sin(.pi * p)
-            let a = exp(-2 * .pi * cutoff / rate)
-            low = a * low + (1 - a) * white
-            slow = b * slow + (1 - b) * low
-            let envelope = pow(max(0, sin(.pi * min(1, p * 1.12))), 1.6)
-            out[i] = Int16(clamping: Int((low - slow) * envelope * 0.48 * 32_767))
-        }
-        return out
-    }
-}

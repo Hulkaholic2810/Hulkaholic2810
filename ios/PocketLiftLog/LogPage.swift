@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum Field: Hashable {
     case title, name(UUID), weight(UUID), reps(UUID)
@@ -11,27 +12,48 @@ enum Field: Hashable {
     }
 }
 
-// MARK: - The page
+// MARK: - The log
 
 struct LogPage: View {
+    @Environment(LogStore.self) private var store
+    let openMenu: () -> Void
+
+    var body: some View {
+        DayPage(key: store.current, openMenu: openMenu)
+            .id(store.current)
+            .safeAreaInset(edge: .bottom, spacing: 0) { RestBar() }
+    }
+}
+
+/// Moving to another day: close the keyboard, then show that day's page.
+@MainActor
+enum DayNav {
+    static func go(_ store: LogStore, to key: String) {
+        guard key != store.current else { return }
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        store.current = key
+    }
+}
+
+// MARK: - One day's page
+
+struct DayPage: View {
     @Environment(LogStore.self) private var store
     @Environment(\.palette) private var pal
     @Environment(\.paper) private var paper
     @FocusState private var focus: Field?
-    @State private var turn: CGFloat = 1
-    @State private var flips = 0
+    let key: String
     let openMenu: () -> Void
 
     var body: some View {
         NavigationStack {
-            ZStack {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         header
                         Rectangle().fill(pal.hair).frame(height: 1).padding(.horizontal, -20)
-                        ForEach(store.day.exercises) { ex in
-                            ExerciseBlock(exID: ex.id, focus: $focus).id(ex.id)
+                        ForEach(store.day(key).exercises) { ex in
+                            ExerciseBlock(exID: ex.id, dayKey: key, focus: $focus).id(ex.id)
                         }
                         addExercise
                         footer
@@ -45,11 +67,15 @@ struct LogPage: View {
                 }
             }
             .background { PaperTexture(paper: paper, palette: pal).ignoresSafeArea() }
-            .id(store.current)
-            .transition(.pageTurn(forward: turn > 0))
-            }
-            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: flips)
-            .safeAreaInset(edge: .bottom, spacing: 0) { RestBar() }
+            // swipe left or right to change the day (no animation)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 40).onEnded { v in
+                    let dx = v.translation.width, dy = v.translation.height
+                    if abs(dx) > 90, abs(dx) > abs(dy) * 2.5 {
+                        DayNav.go(store, to: DayKey.add(key, dx < 0 ? 1 : -1))
+                    }
+                }
+            )
             .toolbar(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -58,14 +84,7 @@ struct LogPage: View {
                     Button("Done") { focus = nil }.fontWeight(.semibold)
                 }
             }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 40).onEnded { v in
-                    let dx = v.translation.width, dy = v.translation.height
-                    if abs(dx) > 80, abs(dx) > abs(dy) * 2 { flip(dx < 0 ? 1 : -1) }
-                }
-            )
         }
-        .scrollContentBackground(.hidden)
     }
 
     private var nextField: Field? {
@@ -76,7 +95,7 @@ struct LogPage: View {
     // MARK: header
 
     private var header: some View {
-        let label = store.dateLabel
+        let label = store.dateLabel(key)
         return VStack(alignment: .leading, spacing: 4) {
             Text(store.brand)
                 .font(.mono(10.5)).tracking(2.4).textCase(.uppercase)
@@ -87,11 +106,13 @@ struct LogPage: View {
             HStack(spacing: 0) {
                 Color.clear.frame(width: 44, height: 44)
                 Spacer(minLength: 0)
-                Button { flip(-1) } label: { arrow("<") }.accessibilityLabel("Previous day")
+                Button { DayNav.go(store, to: DayKey.add(key, -1)) } label: { arrow("<") }
+                    .accessibilityLabel("Previous day")
                 (Text("\(label.date) ") + Text("//").foregroundColor(pal.slate) + Text(" \(label.weekday)"))
                     .font(.mono(14, medium: true)).tracking(1.7).foregroundStyle(pal.ink)
                     .lineLimit(1).fixedSize()
-                Button { flip(1) } label: { arrow(">") }.accessibilityLabel("Next day")
+                Button { DayNav.go(store, to: DayKey.add(key, 1)) } label: { arrow(">") }
+                    .accessibilityLabel("Next day")
                 Spacer(minLength: 0)
                 Button(action: { focus = nil; openMenu() }) {
                     Image(systemName: "line.3.horizontal")
@@ -113,9 +134,9 @@ struct LogPage: View {
                 .ruledLine(paper == .ruled, pal.hair)
 
             HStack(spacing: 14) {
-                Text(store.summary).font(.mono(11.5)).foregroundStyle(pal.slate).monospacedDigit()
-                if !store.isToday {
-                    Button("back to today") { jump(to: DayKey.today) }
+                Text(store.summary(key)).font(.mono(11.5)).foregroundStyle(pal.slate).monospacedDigit()
+                if key != DayKey.today {
+                    Button("back to today") { DayNav.go(store, to: DayKey.today) }
                         .font(.mono(11)).foregroundStyle(pal.ink).underline(color: pal.hair)
                 }
             }
@@ -137,11 +158,11 @@ struct LogPage: View {
     }
 
     private var titleBinding: Binding<String> {
-        Binding(get: { store.day.title }, set: { v in
-            var d = store.day
-            d.title = String(v.prefix(60))
-            d.sampleTitle = false
-            store.day = d
+        Binding(get: { store.day(key).title }, set: { v in
+            store.updateDay(key) { d in
+                d.title = String(v.prefix(60))
+                d.sampleTitle = false
+            }
         })
     }
 
@@ -149,7 +170,7 @@ struct LogPage: View {
 
     private var addExercise: some View {
         Button {
-            let id = store.addExercise()
+            let id = store.addExercise(on: key)
             DispatchQueue.main.async { focus = .name(id) }
         } label: {
             HStack(spacing: 10) {
@@ -166,7 +187,7 @@ struct LogPage: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Tap the ✓ box when you finish a set. Units, paper and rest time are in the menu.")
+            Text("Tap the ✓ box when you finish a set. Swipe or use ‹ › to change the day. Units, paper and rest time are in the menu.")
             Text("Everything saves on this iPhone and works offline.")
         }
         .font(.mono(10.5)).foregroundStyle(pal.slate)
@@ -174,22 +195,6 @@ struct LogPage: View {
     }
 
     // MARK: behaviour
-
-    private func flip(_ dir: Int) {
-        jump(to: DayKey.add(store.current, dir))
-    }
-
-    private func jump(to key: String) {
-        guard key != store.current else { return }
-        focus = nil
-        turn = key > store.current ? 1 : -1
-        flips += 1
-        if store.data.settings.pageSound { PageSound.play() }
-        // set the direction first, so the page leaving uses the matching turn
-        DispatchQueue.main.async {
-            withAnimation(.easeInOut(duration: 0.5)) { store.current = key }
-        }
-    }
 
     /// Tidy up when a field loses focus: drop an unnamed empty exercise or a set left with no numbers.
     private func focusLeft(_ old: Field?, now new: Field?) {
@@ -206,8 +211,8 @@ struct LogPage: View {
             if new == .weight(sid) || new == .reps(sid) { return }
             withAnimation { store.removeEmptySet(sid) }
         case .title?:
-            let t = store.day.title.trimmingCharacters(in: .whitespaces)
-            if t != store.day.title { store.day.title = t }
+            let t = store.day(key).title.trimmingCharacters(in: .whitespaces)
+            if t != store.day(key).title { store.updateDay(key) { $0.title = t } }
         case nil:
             break
         }
@@ -221,6 +226,7 @@ struct ExerciseBlock: View {
     @Environment(\.palette) private var pal
     @Environment(\.paper) private var paper
     let exID: UUID
+    let dayKey: String
     var focus: FocusState<Field?>.Binding
 
     var body: some View {
@@ -319,7 +325,7 @@ struct ExerciseBlock: View {
 
     @ViewBuilder
     private func history(_ ex: Exercise) -> some View {
-        let last = store.last(for: ex.name)
+        let last = store.last(for: ex.name, before: dayKey)
         let pr = store.best(for: ex.name)
         if last != nil || pr != nil {
             HStack(alignment: .firstTextBaseline, spacing: 12) {

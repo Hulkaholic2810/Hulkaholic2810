@@ -47,7 +47,6 @@ struct AppSettings: Codable, Equatable {
     var paper: Paper = .grain
     var tone: Tone = .day
     var followDevice = false
-    var pageSound = true
     var owner = ""
     /// set once the person has signed in or chosen to carry on without an account
     var onboarded = false
@@ -73,7 +72,6 @@ extension AppSettings {
         paper = try c.decodeIfPresent(Paper.self, forKey: .paper) ?? d.paper
         tone = try c.decodeIfPresent(Tone.self, forKey: .tone) ?? d.tone
         followDevice = try c.decodeIfPresent(Bool.self, forKey: .followDevice) ?? d.followDevice
-        pageSound = try c.decodeIfPresent(Bool.self, forKey: .pageSound) ?? d.pageSound
         owner = try c.decodeIfPresent(String.self, forKey: .owner) ?? d.owner
         onboarded = try c.decodeIfPresent(Bool.self, forKey: .onboarded) ?? d.onboarded
         account = try c.decodeIfPresent(Account.self, forKey: .account)
@@ -178,15 +176,16 @@ final class LogStore {
 
     // MARK: current page
 
-    var day: Day {
-        get { data.days[current] ?? Day() }
-        set { data.days[current] = newValue }
+    func day(_ key: String) -> Day { data.days[key] ?? Day() }
+
+    func updateDay(_ key: String, _ body: (inout Day) -> Void) {
+        var d = day(key)
+        body(&d)
+        data.days[key] = d
     }
 
-    var isToday: Bool { current == DayKey.today }
-
-    var dateLabel: (date: String, weekday: String) {
-        let d = DayKey.date(current)
+    func dateLabel(_ key: String) -> (date: String, weekday: String) {
+        let d = DayKey.date(key)
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         let sameYear = Calendar.current.isDate(d, equalTo: Date(), toGranularity: .year)
@@ -202,8 +201,8 @@ final class LogStore {
         return n.lowercased().hasSuffix("s") ? "\(n)’ Pocket Log" : "\(n)’s Pocket Log"
     }
 
-    var summary: String {
-        let exs = day.exercises.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty || !$0.sets.isEmpty }
+    func summary(_ key: String) -> String {
+        let exs = day(key).exercises.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty || !$0.sets.isEmpty }
         guard !exs.isEmpty else { return "Blank page" }
         let sets = exs.flatMap(\.sets).filter { $0.reps != nil }
         let done = sets.filter(\.done)
@@ -256,10 +255,11 @@ final class LogStore {
 
     // MARK: history and PRs
 
-    func last(for name: String) -> (day: String, sets: [LiftSet])? {
+    /// The most recent earlier page with this exercise logged.
+    func last(for name: String, before key: String) -> (day: String, sets: [LiftSet])? {
         let n = Self.norm(name)
         guard !n.isEmpty else { return nil }
-        for k in data.days.keys.sorted(by: >) where k < current {
+        for k in data.days.keys.sorted(by: >) where k < key {
             if let ex = data.days[k]?.exercises.first(where: { ex in Self.norm(ex.name) == n && ex.sets.contains { $0.reps != nil } }) {
                 return (k, ex.sets.filter { $0.reps != nil })
             }
@@ -306,13 +306,22 @@ final class LogStore {
 
     // MARK: editing
 
-    func exercise(_ id: UUID) -> Exercise? { day.exercises.first { $0.id == id } }
+    // Exercises and sets have unique ids, so they're found on whichever page holds them.
+
+    func dayKey(containing exID: UUID) -> String? {
+        data.days.first { $0.value.exercises.contains { $0.id == exID } }?.key
+    }
+
+    func exercise(_ id: UUID) -> Exercise? {
+        guard let k = dayKey(containing: id) else { return nil }
+        return data.days[k]?.exercises.first { $0.id == id }
+    }
 
     func updateExercise(_ id: UUID, _ body: (inout Exercise) -> Void) {
-        var d = day
-        guard let i = d.exercises.firstIndex(where: { $0.id == id }) else { return }
+        guard let k = dayKey(containing: id), var d = data.days[k],
+              let i = d.exercises.firstIndex(where: { $0.id == id }) else { return }
         body(&d.exercises[i])
-        day = d
+        data.days[k] = d
     }
 
     func updateSet(_ exID: UUID, _ setID: UUID, _ body: (inout LiftSet) -> Void) {
@@ -322,20 +331,27 @@ final class LogStore {
     }
 
     func exerciseID(containing setID: UUID) -> UUID? {
-        day.exercises.first { ex in ex.sets.contains { $0.id == setID } }?.id
+        for d in data.days.values {
+            if let ex = d.exercises.first(where: { ex in ex.sets.contains { $0.id == setID } }) { return ex.id }
+        }
+        return nil
     }
 
-    func addExercise() -> UUID {
+    func addExercise(on key: String) -> UUID {
         let ex = Exercise()
-        day.exercises.append(ex)
+        updateDay(key) { $0.exercises.append(ex) }
         return ex.id
+    }
+
+    private func last(forExercise ex: Exercise) -> (day: String, sets: [LiftSet])? {
+        last(for: ex.name, before: dayKey(containing: ex.id) ?? current)
     }
 
     /// New sets copy the previous set, or the same set from last session.
     @discardableResult
     func addSet(to exID: UUID) -> UUID? {
         guard let ex = exercise(exID) else { return nil }
-        let lastSets = last(for: ex.name)?.sets ?? []
+        let lastSets = last(forExercise: ex)?.sets ?? []
         let prev = ex.sets.last ?? (lastSets.indices.contains(ex.sets.count) ? lastSets[ex.sets.count] : nil)
         let s = LiftSet(weight: prev?.weight, unit: prev?.unit ?? unit, reps: prev?.reps)
         updateExercise(exID) { $0.sets.append(s) }
@@ -343,7 +359,7 @@ final class LogStore {
     }
 
     func copyLast(_ exID: UUID) {
-        guard let ex = exercise(exID), let last = last(for: ex.name) else { return }
+        guard let ex = exercise(exID), let last = last(forExercise: ex) else { return }
         updateExercise(exID) { e in
             e.sets.removeAll { $0.reps == nil && $0.weight == nil }
             for s in last.sets.dropFirst(e.sets.count) {
@@ -367,7 +383,8 @@ final class LogStore {
     }
 
     func deleteExercise(_ id: UUID) {
-        day.exercises.removeAll { $0.id == id }
+        guard let k = dayKey(containing: id) else { return }
+        updateDay(k) { $0.exercises.removeAll { $0.id == id } }
     }
 
     func removeExercise(_ id: UUID) {

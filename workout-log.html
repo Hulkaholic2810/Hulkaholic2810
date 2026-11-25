@@ -303,24 +303,6 @@ input:focus, input:focus-visible { outline: none; }
 }
 .danger.armed { background: var(--ink); color: var(--paper); }
 
-/* page turn: a copy of the page lifts at its left edge and folds over, with a soft shadow at the fold */
-.turn-layer { position: fixed; inset: 0; overflow: hidden; pointer-events: none; perspective: 1400px; }
-.turn-page {
-  position: absolute; margin: 0; transform-origin: left center; backface-visibility: hidden; will-change: transform;
-  background-color: var(--paper); background-image: var(--tex); background-size: var(--tex-size); background-position: 10px 10px;
-}
-.turn-page::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
-  background: linear-gradient(to right, rgba(0, 0, 0, .22), rgba(0, 0, 0, .05) 60%, rgba(0, 0, 0, 0));
-}
-.turn-away { animation: turnAway .5s cubic-bezier(.45, .05, .55, .95) forwards; }
-.turn-away::after { animation: shadeIn .5s ease-in forwards; }
-.turn-in { animation: turnIn .5s cubic-bezier(.45, .05, .55, .95) forwards; }
-.turn-in::after { animation: shadeOut .5s ease-out forwards; }
-@keyframes turnAway { from { transform: rotateY(0deg); } to { transform: rotateY(-100deg); } }
-@keyframes turnIn { from { transform: rotateY(-100deg); } to { transform: rotateY(0deg); } }
-@keyframes shadeIn { to { opacity: 1; } }
-@keyframes shadeOut { from { opacity: 1; } to { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
@@ -433,7 +415,6 @@ input:focus, input:focus-visible { outline: none; }
     s.prs = s.prs && typeof s.prs === 'object' ? s.prs : {};
     s.autoRest = s.autoRest !== false;
     s.sound = s.sound !== false;
-    s.pageSound = s.pageSound !== false;
     s.owner = typeof s.owner === 'string' ? s.owner.trim().slice(0, 24) : '';
     if (!s.tone) { s.tone = s.theme === 'dark' ? 'night' : 'day'; s.followDevice = s.theme === 'auto'; } // from the Light/Dark/Auto setting
     delete s.theme;
@@ -809,58 +790,11 @@ input:focus, input:focus-visible { outline: none; }
     syncNotes(null);
     if (!quiet) toast('Set removed');
   }
-  function goTo(k, dir) {
+  function goTo(k) {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    unlockAudio();
-    swoosh();
-    const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const leaving = still ? null : snapshotPage();
     cur = k;
     render();
-    if (leaving) turnPage(leaving, dir);
-  }
-  // a static copy of the page as it looks now (typed values included), for the turn
-  function snapshotPage() {
-    const r = book.getBoundingClientRect();
-    const copy = book.cloneNode(true);
-    const from = book.querySelectorAll('input'), to = copy.querySelectorAll('input');
-    from.forEach((inp, i) => to[i].setAttribute('value', inp.value));
-    copy.removeAttribute('id');
-    copy.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
-    copy.setAttribute('aria-hidden', 'true');
-    copy.inert = true;
-    copy.classList.add('turn-page');
-    copy.style.top = r.top + 'px';
-    copy.style.left = r.left + 'px';
-    copy.style.width = r.width + 'px';
-    copy.style.minHeight = Math.max(r.height, innerHeight - r.top) + 'px';
-    return copy;
-  }
-  function layer(page, z) {
-    const wrap = document.createElement('div');
-    wrap.className = 'turn-layer';
-    wrap.style.zIndex = z;
-    wrap.append(page);
-    document.body.append(wrap);
-    return wrap;
-  }
-  function turnPage(leaving, dir) {
-    document.querySelectorAll('.turn-layer').forEach(n => n.remove());
-    let done;
-    if (dir > 0) {            // forward: the old page turns away, the new one is underneath
-      const top = layer(leaving, 25);
-      leaving.classList.add('turn-away');
-      done = () => top.remove();
-      leaving.addEventListener('animationend', done, { once: true });
-    } else {                  // back: the earlier page swings in over the old one
-      const under = layer(leaving, 24);
-      const arriving = snapshotPage();
-      const top = layer(arriving, 25);
-      arriving.classList.add('turn-in');
-      done = () => { under.remove(); top.remove(); };
-      arriving.addEventListener('animationend', done, { once: true });
-    }
-    setTimeout(done, 900); // in case animationend never fires
+    window.scrollTo(0, 0);
   }
 
   /* ---------- rest timer ---------- */
@@ -871,30 +805,6 @@ input:focus, input:focus-visible { outline: none; }
       actx = actx || new (window.AudioContext || window.webkitAudioContext)();
       if (actx.state === 'suspended') actx.resume();
     } catch (e) { actx = null; }
-  }
-  // a paper swoosh: noise through a band-pass that brightens mid-turn, then settles
-  function swoosh() {
-    if (!actx || !state.pageSound) return;
-    try {
-      const t = actx.currentTime, dur = 0.38, len = Math.floor(actx.sampleRate * dur);
-      const buf = actx.createBuffer(1, len, actx.sampleRate), data = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-      const src = actx.createBufferSource();
-      src.buffer = buf;
-      const band = actx.createBiquadFilter();
-      band.type = 'bandpass';
-      band.Q.value = 0.8;
-      band.frequency.setValueAtTime(600, t);
-      band.frequency.linearRampToValueAtTime(3200, t + dur * 0.5);
-      band.frequency.linearRampToValueAtTime(900, t + dur);
-      const g = actx.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.16, t + dur * 0.45);
-      g.gain.linearRampToValueAtTime(0.0001, t + dur);
-      src.connect(band); band.connect(g); g.connect(actx.destination);
-      src.start(t);
-      src.stop(t + dur);
-    } catch (e) {}
   }
   function chime() {
     if (!actx || !state.sound) return;
@@ -1153,9 +1063,7 @@ input:focus, input:focus-visible { outline: none; }
       `<section class="opt"><h3>Start rest automatically</h3><p>Begin the countdown when you tick a set.</p>` +
         seg('autoRest', [[true, 'ON'], [false, 'OFF']], 'Start rest automatically') + `</section>` +
       `<section class="opt"><h3>Chime</h3><p>Play a soft chime when rest is over.</p>` +
-        seg('sound', [[true, 'ON'], [false, 'OFF']], 'Chime') + `</section>` +
-      `<section class="opt"><h3>Page turn sound</h3><p>A paper swoosh when you flip to another day.</p>` +
-        seg('pageSound', [[true, 'ON'], [false, 'OFF']], 'Page turn sound') + `</section>` },
+        seg('sound', [[true, 'ON'], [false, 'OFF']], 'Chime') + `</section>` },
     logout: { title: 'Log out', html: () => `<div class="doc">` +
       `<p>Pocket Lift Log doesn't use accounts yet, so there's nothing to sign out of. Your log is kept only in this browser, on this device.</p>` +
       `<p>To start fresh, or before you hand this device to someone else, erase the log. This removes every workout, PR and setting stored here.</p>` +
@@ -1207,7 +1115,7 @@ input:focus, input:focus-visible { outline: none; }
     $('#menuBtn').focus();
   }
   function setOption(key, raw) {
-    const val = key === 'rest' ? Number(raw) : (key === 'autoRest' || key === 'sound' || key === 'followDevice' || key === 'pageSound') ? raw === 'true' : raw;
+    const val = key === 'rest' ? Number(raw) : (key === 'autoRest' || key === 'sound' || key === 'followDevice') ? raw === 'true' : raw;
     if (state[key] === val) return;
     state[key] = val;
     if (key === 'followDevice') applyTheme();
