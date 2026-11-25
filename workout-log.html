@@ -13,13 +13,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
 <style>
-/* Layout: a dot-grid bullet-journal page. 20px dot pitch; rows are 40px (two dots); bullets hang in a 36px left column. */
+/* Layout: a plain bullet-journal page. Rows are 40px; set numbers sit in a 36px left column. */
 :root {
   --paper: #F9F8F6;
   --ink: #1A1A1A;
   --slate: #7A7872;
   --hair: #E2E0D8;
-  --dot: #D3D1C9;
   --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --row: 40px;
@@ -31,23 +30,18 @@
 }
 /* Dark ink: chosen in Menu › Settings › Appearance. "Auto" follows the device (or the host's theme when it sets one). */
 :root[data-ink="dark"], :root[data-ink="auto"][data-theme="dark"] {
-  --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --dot: #3A3934; --scrim: rgba(0, 0, 0, .5);
+  --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --scrim: rgba(0, 0, 0, .5);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-ink="auto"]:not([data-theme="light"]) {
-    --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --dot: #3A3934; --scrim: rgba(0, 0, 0, .5);
+    --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --scrim: rgba(0, 0, 0, .5);
     color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body {
-  background-color: var(--paper);
-  background-image: radial-gradient(circle at center, var(--dot) 0.9px, transparent 1.3px);
-  background-size: 20px 20px;
-  background-position: 10px 10px;
-}
+html, body { background: var(--paper); }
 body {
   margin: 0; color: var(--ink);
   font: 16px/1.4 var(--serif);
