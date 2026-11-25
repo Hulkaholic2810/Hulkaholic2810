@@ -24,9 +24,21 @@
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --row: 40px;
   --bul: 36px;
+  --scrim: rgba(26, 26, 26, .16);
   color-scheme: light;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Dark ink: chosen in Menu › Settings › Appearance. "Auto" follows the device (or the host's theme when it sets one). */
+:root[data-ink="dark"], :root[data-ink="auto"][data-theme="dark"] {
+  --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --dot: #3A3934; --scrim: rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-ink="auto"]:not([data-theme="light"]) {
+    --paper: #161614; --ink: #ECEAE4; --slate: #8F8D86; --hair: #2D2C28; --dot: #3A3934; --scrim: rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -207,14 +219,12 @@ input:focus, input:focus-visible { outline: none; }
 @keyframes rise { from { opacity: 0; transform: translate(-50%, 6px); } }
 
 /* ---------- menu drawer ---------- */
-.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(26, 26, 26, .16); opacity: 0; transition: opacity .25s; }
+.scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); opacity: 0; transition: opacity .25s; }
 .scrim.open { opacity: 1; }
 .drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; width: min(88vw, 380px);
   display: flex; flex-direction: column;
-  background-color: var(--paper);
-  background-image: radial-gradient(circle at center, var(--dot) 0.9px, transparent 1.3px);
-  background-size: 20px 20px; background-position: 10px 10px;
+  background: var(--paper);
   border-left: 1px solid var(--hair);
   padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
   transform: translateX(100%); transition: transform .26s cubic-bezier(.3, .7, .2, 1);
@@ -268,6 +278,13 @@ input:focus, input:focus-visible { outline: none; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
 </style>
+<script>
+  // apply the saved appearance before the page paints, so dark mode doesn't flash white
+  try {
+    const t = (JSON.parse(localStorage.getItem('pocketlog.v2')) || {}).theme;
+    document.documentElement.setAttribute('data-ink', t === 'dark' || t === 'auto' ? t : 'light');
+  } catch (e) { document.documentElement.setAttribute('data-ink', 'light'); }
+</script>
 </head>
 <body>
 
@@ -359,6 +376,7 @@ input:focus, input:focus-visible { outline: none; }
     s.prs = s.prs && typeof s.prs === 'object' ? s.prs : {};
     s.autoRest = s.autoRest !== false;
     s.sound = s.sound !== false;
+    s.theme = s.theme === 'dark' || s.theme === 'auto' ? s.theme : 'light';
     for (const k of Object.keys(s.days)) {
       const d = s.days[k];
       if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !d || typeof d !== 'object') { delete s.days[k]; continue; }
@@ -970,10 +988,12 @@ input:focus, input:focus-visible { outline: none; }
     `<button type="button" data-view="${view}"><span><span class="lbl">${label}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span><span class="chev" aria-hidden="true">&gt;</span></button>`;
   const VIEWS = {
     menu: { title: 'Menu', html: () => `<nav class="dr-list">` +
-      item('settings', 'Settings', 'Weight unit, rest timer') +
+      item('settings', 'Settings', 'Appearance, weight unit, rest timer') +
       item('logout', 'Log out', 'Account and data on this device') +
       item('info', 'App info', 'Privacy policy, terms & conditions') + `</nav>` },
     settings: { title: 'Settings', html: () =>
+      `<section class="opt"><h3>Appearance</h3><p>Dark ink on paper, or light ink on a dark page. Auto follows your device.</p>` +
+        seg('theme', [['light', 'LIGHT'], ['dark', 'DARK'], ['auto', 'AUTO']], 'Appearance') + `</section>` +
       `<section class="opt"><h3>Weight unit</h3><p>Default for new entries. Switching converts every weight on screen.</p>` +
         seg('unit', [['kg', 'KG'], ['lb', 'LB']], 'Weight unit') + `</section>` +
       `<section class="opt"><h3>Rest timer</h3><p>Default countdown after each completed set.</p>` +
@@ -1035,6 +1055,7 @@ input:focus, input:focus-visible { outline: none; }
     const val = key === 'rest' ? Number(raw) : (key === 'autoRest' || key === 'sound') ? raw === 'true' : raw;
     if (state[key] === val) return;
     state[key] = val;
+    if (key === 'theme') applyTheme();
     if (key === 'unit') { recomputePRs(); render(); }
     if (key === 'rest' && timer.state === 'idle') renderBar();
     persist();
@@ -1112,7 +1133,12 @@ input:focus, input:focus-visible { outline: none; }
     else if (e.key === 'ArrowRight') goTo(addDays(cur, 1), 1);
   });
 
-  function render() { renderHead(); renderSheet(); refreshNames(); }
+  function applyTheme() {
+    document.documentElement.setAttribute('data-ink', state.theme);
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
+  }
+  function render() { applyTheme(); renderHead(); renderSheet(); refreshNames(); }
   recomputePRs();
   render();
   // resume a rest timer that was running before a reload
