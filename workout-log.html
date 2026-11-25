@@ -59,8 +59,10 @@ input:focus, input:focus-visible { outline: none; }
 
 /* ---------- header ---------- */
 .head { padding-block: 20px 12px; border-bottom: 1px solid var(--hair); }
-.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: var(--row); }
-.datenav { display: flex; align-items: center; margin-left: -10px; min-width: 0; }
+.top { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; height: var(--row); margin-inline: -12px; }
+.datenav { display: flex; align-items: center; justify-content: center; min-width: 0; }
+.menu-btn { width: 44px; height: 44px; display: grid; place-items: center; color: var(--ink); }
+.menu-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
 .arrow {
   width: 32px; height: var(--row); display: grid; place-items: center;
   font-family: var(--mono); font-size: 14px; color: var(--slate);
@@ -68,11 +70,6 @@ input:focus, input:focus-visible { outline: none; }
 .arrow:hover { color: var(--ink); }
 .date { font-family: var(--mono); font-size: 14px; font-weight: 500; letter-spacing: .12em; white-space: nowrap; padding: 0 4px; }
 .date .sep { color: var(--slate); font-weight: 400; padding: 0 .1em; }
-.unit {
-  font-family: var(--mono); font-size: 12.5px; letter-spacing: .08em; color: var(--slate);
-  height: var(--row); white-space: nowrap; margin-right: -4px; padding: 0 4px;
-}
-.unit b { color: var(--ink); font-weight: 500; }
 
 .title {
   width: 100%; border: 0; background: transparent; padding: 8px 0 4px;
@@ -117,18 +114,22 @@ input:focus, input:focus-visible { outline: none; }
 .copy:hover { color: var(--ink); }
 
 .set-row {
-  display: grid; grid-template-columns: var(--bul) auto auto auto minmax(0, 1fr) auto;
-  align-items: center; height: var(--row); margin-left: -10px;
+  display: grid; grid-template-columns: var(--bul) auto auto auto minmax(0, 1fr) auto 48px;
+  align-items: center; height: var(--row); margin-left: -10px; margin-right: -10px;
 }
-.bullet { width: var(--bul); height: var(--row); display: grid; place-items: center; }
-.bullet svg { width: 20px; height: 20px; overflow: visible; }
-.bullet .ring { fill: none; stroke: var(--slate); stroke-width: 1.2; transition: stroke .2s; }
-.bullet .fill {
+.set-row .num { text-align: center; font-family: var(--mono); font-size: 11.5px; color: var(--slate); }
+.check { grid-column: 7; width: 48px; height: var(--row); display: grid; place-items: center; }
+.check svg { width: 26px; height: 26px; overflow: visible; transition: transform .1s; }
+.check .box { fill: transparent; stroke: var(--slate); stroke-width: 1.2; transition: stroke .2s; }
+.check .ink {
   fill: var(--ink); transform-box: fill-box; transform-origin: center; transform: scale(0);
   transition: transform .34s cubic-bezier(.34, 1.56, .64, 1);
 }
-.bullet.done .ring { stroke: var(--ink); }
-.bullet.done .fill { transform: scale(1); }
+.check .tk { fill: none; stroke: var(--slate); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .5; transition: stroke .2s .08s, opacity .2s; }
+.check.done .box { stroke: var(--ink); }
+.check.done .ink { transform: scale(1); }
+.check.done .tk { stroke: var(--paper); opacity: 1; }
+.check:active svg { transform: scale(.92); }
 .set-row input {
   height: 30px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; padding: 0 1px;
   font-family: var(--mono); font-size: 17px; font-variant-numeric: tabular-nums; color: var(--ink);
@@ -205,6 +206,59 @@ input:focus, input:focus-visible { outline: none; }
 .toast button { color: var(--paper); text-decoration: underline; text-underline-offset: 3px; min-height: 36px; padding: 0 10px; }
 @keyframes rise { from { opacity: 0; transform: translate(-50%, 6px); } }
 
+/* ---------- menu drawer ---------- */
+.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(26, 26, 26, .16); opacity: 0; transition: opacity .25s; }
+.scrim.open { opacity: 1; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; width: min(88vw, 380px);
+  display: flex; flex-direction: column;
+  background-color: var(--paper);
+  background-image: radial-gradient(circle at center, var(--dot) 0.9px, transparent 1.3px);
+  background-size: 20px 20px; background-position: 10px 10px;
+  border-left: 1px solid var(--hair);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateX(100%); transition: transform .26s cubic-bezier(.3, .7, .2, 1);
+}
+.drawer.open { transform: none; }
+.dr-top {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; height: 56px; flex: none;
+  padding-left: 8px; padding-right: max(8px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--hair);
+}
+.dr-top h2 { grid-column: 2; margin: 0; text-align: center; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; }
+.dr-back, .dr-x { width: 44px; height: 44px; display: grid; place-items: center; font-family: var(--mono); color: var(--slate); font-size: 15px; }
+.dr-x { color: var(--ink); font-size: 20px; grid-column: 3; }
+.dr-body {
+  flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding-block: 4px 40px; padding-left: 20px; padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+.dr-list button {
+  width: 100%; min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border-bottom: 1px solid var(--hair); text-align: left;
+}
+.dr-list .lbl { font-family: var(--serif); font-size: 20px; }
+.dr-list .sub { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; color: var(--slate); margin-top: 2px; }
+.dr-list .chev { font-family: var(--mono); font-size: 13px; color: var(--slate); }
+.opt { padding-block: 16px 10px; border-bottom: 1px solid var(--hair); }
+.opt h3, .doc h3 { margin: 0 0 4px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+.opt p { margin: 0 0 4px; font-family: var(--serif); font-size: 15px; line-height: 1.45; color: var(--slate); }
+.seg { display: flex; flex-wrap: wrap; margin-left: -8px; }
+.seg button { height: 44px; padding: 0 6px; font-family: var(--mono); font-size: 13px; letter-spacing: .03em; color: var(--slate); }
+.seg button::before { content: "["; visibility: hidden; padding-right: 3px; }
+.seg button::after { content: "]"; visibility: hidden; padding-left: 3px; }
+.seg button[aria-checked="true"] { color: var(--ink); font-weight: 500; }
+.seg button[aria-checked="true"]::before, .seg button[aria-checked="true"]::after { visibility: visible; }
+.doc { padding-top: 16px; }
+.doc h3 { margin-top: 22px; }
+.doc p, .doc li { margin: 0 0 8px; font-family: var(--serif); font-size: 15.5px; line-height: 1.55; }
+.doc ul { margin: 0 0 8px; padding-left: 18px; }
+.doc .stamp { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--slate); }
+.doc .app-name { font-family: var(--serif); font-size: 28px; font-weight: 500; margin: 8px 0 0; line-height: 1.2; }
+.danger {
+  margin-top: 12px; min-height: 44px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 2px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+}
+.danger.armed { background: var(--ink); color: var(--paper); }
+
 @keyframes inkNext { from { opacity: 0; transform: translateX(12px); } }
 @keyframes inkPrev { from { opacity: 0; transform: translateX(-12px); } }
 .turn-next .sheet > *, .turn-next .title { animation: inkNext .22s ease-out; }
@@ -220,12 +274,15 @@ input:focus, input:focus-visible { outline: none; }
 <div class="book" id="book">
   <header class="head gut">
     <div class="top">
+      <span aria-hidden="true"></span>
       <div class="datenav">
         <button type="button" class="arrow" id="prev" aria-label="Previous day">&lt;</button>
         <span class="date" id="date"></span>
         <button type="button" class="arrow" id="next" aria-label="Next day">&gt;</button>
       </div>
-      <button type="button" class="unit" id="unit"></button>
+      <button type="button" class="menu-btn" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog" aria-controls="drawer">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+      </button>
     </div>
     <input class="title" id="title" placeholder="Untitled session" autocomplete="off" maxlength="60" enterkeyhint="done" aria-label="Session title">
     <div class="meta">
@@ -241,7 +298,7 @@ input:focus, input:focus-visible { outline: none; }
   <main class="sheet gut" id="sheet" aria-label="Workout log"></main>
 
   <footer class="foot gut">
-    Tap • to complete a set. The rest timer starts on its own.<br>
+    Tap the ✓ box when you finish a set. Units and rest time are in the menu.<br>
     <span id="saveNote"></span>
   </footer>
 </div>
@@ -252,6 +309,15 @@ input:focus, input:focus-visible { outline: none; }
 </div>
 <div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="undo">Undo</button></div>
 <datalist id="names"></datalist>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drTitle" hidden>
+  <div class="dr-top">
+    <button type="button" class="dr-back" id="drBack" aria-label="Back" hidden>&lt;</button>
+    <h2 id="drTitle">Menu</h2>
+    <button type="button" class="dr-x" id="drClose" aria-label="Close menu">×</button>
+  </div>
+  <div class="dr-body" id="drBody"></div>
+</aside>
 
 <script>
 (() => {
@@ -291,6 +357,8 @@ input:focus, input:focus-visible { outline: none; }
     s.unit = s.unit === 'lb' ? 'lb' : 'kg';
     s.rest = Number.isFinite(s.rest) ? Math.min(600, Math.max(15, s.rest)) : 90;
     s.prs = s.prs && typeof s.prs === 'object' ? s.prs : {};
+    s.autoRest = s.autoRest !== false;
+    s.sound = s.sound !== false;
     for (const k of Object.keys(s.days)) {
       const d = s.days[k];
       if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !d || typeof d !== 'object') { delete s.days[k]; continue; }
@@ -422,9 +490,6 @@ input:focus, input:focus-visible { outline: none; }
     $('#todayBtn').hidden = cur === todayKey();
     if (document.activeElement !== titleEl) titleEl.value = getDay(cur).title || '';
     $('#sample').hidden = !Object.values(state.days).some(x => x.ex.some(e => e.sample));
-    const u = state.unit;
-    $('#unit').innerHTML = u === 'kg' ? '[ <b>KG</b> / LB ]' : '[ KG / <b>LB</b> ]';
-    $('#unit').setAttribute('aria-label', `Units: ${u}. Switch to ${u === 'kg' ? 'lb' : 'kg'}`);
     updateSummary();
   }
   function updateSummary() {
@@ -530,12 +595,14 @@ input:focus, input:focus-visible { outline: none; }
     row.dataset.set = s.id;
     const wv = s.w == null ? '' : num(inUnit(s.w, s.u));
     row.innerHTML =
-      `<button type="button" class="bullet${s.done ? ' done' : ''}" data-act="toggle" aria-pressed="${s.done}" aria-label="Set ${i + 1} complete">` +
-        `<svg viewBox="0 0 20 20" aria-hidden="true"><circle class="ring" cx="10" cy="10" r="4.4"/><circle class="fill" cx="10" cy="10" r="4.4"/></svg></button>` +
+      `<span class="num" aria-hidden="true">${i + 1}</span>` +
       `<input class="w" id="w-${s.id}" inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="${state.unit}" value="${wv}" aria-label="Set ${i + 1} weight in ${state.unit}, blank for bodyweight">` +
       `<span class="x">×</span>` +
       `<input class="r" id="r-${s.id}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off" placeholder="reps" value="${s.r == null ? '' : s.r}" aria-label="Set ${i + 1} reps">` +
-      `<button type="button" class="rm-set" data-act="rm-set" data-keep aria-label="Delete set ${i + 1}">×</button>`;
+      `<button type="button" class="rm-set" data-act="rm-set" data-keep aria-label="Delete set ${i + 1}">×</button>` +
+      `<button type="button" class="check${s.done ? ' done' : ''}" data-act="toggle" aria-pressed="${s.done}" aria-label="Set ${i + 1} done">` +
+        `<svg viewBox="0 0 26 26" aria-hidden="true"><rect class="box" x="1" y="1" width="24" height="24" rx="3"/>` +
+        `<rect class="ink" x="1" y="1" width="24" height="24" rx="3"/><path class="tk" d="M7.5 13.4 L11.3 17 L18.6 9"/></svg></button>`;
     return row;
   }
   function noteEl(text, fresh) {
@@ -604,7 +671,7 @@ input:focus, input:focus-visible { outline: none; }
     updateSummary();
     if (s.done) {
       haptic(prMap.has(s.id) ? [10, 60, 10] : 8);
-      startRest();
+      if (state.autoRest) startRest();
     }
     persist();
   }
@@ -618,8 +685,8 @@ input:focus, input:focus-visible { outline: none; }
   }
   $('#undo').addEventListener('click', () => {
     if (!undoData) return;
-    state.days[undoData.k] = JSON.parse(undoData.json);
-    cur = undoData.k;
+    if (undoData.all) state = normalize(JSON.parse(undoData.all));
+    else { state.days[undoData.k] = JSON.parse(undoData.json); cur = undoData.k; }
     undoData = null;
     $('#toast').hidden = true;
     recomputePRs();
@@ -666,7 +733,7 @@ input:focus, input:focus-visible { outline: none; }
     } catch (e) { actx = null; }
   }
   function chime() {
-    if (!actx) return;
+    if (!actx || !state.sound) return;
     try {
       const t = actx.currentTime;
       [[659.25, 0], [987.77, 0.16]].forEach(([f, d]) => {
@@ -700,15 +767,13 @@ input:focus, input:focus-visible { outline: none; }
     saveSoon();
     renderBar();
   }
+  // ±15s changes only this countdown; the default lives in Settings
   function adjustRest(d) {
-    state.rest = Math.min(600, Math.max(15, state.rest + d));
-    if (timer.state === 'done') { if (d > 0) startRest(d); else return; }
-    else {
-      timer.end += d * 1000;
-      timer.dur = Math.max(1, timer.dur + d);
-      state.timer = { end: timer.end, dur: timer.dur };
-      tick();
-    }
+    if (timer.state === 'done') { if (d > 0) startRest(d); return; }
+    timer.end += d * 1000;
+    timer.dur = Math.max(1, timer.dur + d);
+    state.timer = { end: timer.end, dur: timer.dur };
+    tick();
     saveSoon();
   }
   function tick() {
@@ -823,7 +888,7 @@ input:focus, input:focus-visible { outline: none; }
         s.r = r > 0 && r < 1000 ? r : null;
         if (!s.r && s.done) {
           s.done = false;
-          const b = t.closest('.set-row').querySelector('.bullet');
+          const b = t.closest('.set-row').querySelector('.check');
           b.classList.remove('done'); b.setAttribute('aria-pressed', 'false');
         }
       }
@@ -882,11 +947,124 @@ input:focus, input:focus-visible { outline: none; }
   $('#prev').addEventListener('click', () => goTo(addDays(cur, -1), -1));
   $('#next').addEventListener('click', () => goTo(addDays(cur, 1), 1));
   $('#todayBtn').addEventListener('click', () => { const t = todayKey(); goTo(t, t > cur ? 1 : -1); });
-  $('#unit').addEventListener('click', () => {
+  /* ---------- menu drawer ---------- */
+  const drawer = $('#drawer'), scrim = $('#scrim'), drBody = $('#drBody'), drBack = $('#drBack');
+  let viewStack = [], eraseT = 0;
+  const fmtRest = (s) => `${Math.floor(s / 60)}:${pad(s % 60)}`;
+  const seg = (key, opts, label) =>
+    `<div class="seg" role="radiogroup" aria-label="${label}">` +
+    opts.map(([v, l]) => `<button type="button" role="radio" aria-checked="${state[key] === v}" data-opt="${key}" data-val="${v}">${l}</button>`).join('') +
+    `</div>`;
+  const item = (view, label, sub) =>
+    `<button type="button" data-view="${view}"><span><span class="lbl">${label}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span><span class="chev" aria-hidden="true">&gt;</span></button>`;
+  const VIEWS = {
+    menu: { title: 'Menu', html: () => `<nav class="dr-list">` +
+      item('settings', 'Settings', 'Weight unit, rest timer') +
+      item('logout', 'Log out', 'Account and data on this device') +
+      item('info', 'App info', 'Privacy policy, terms & conditions') + `</nav>` },
+    settings: { title: 'Settings', html: () =>
+      `<section class="opt"><h3>Weight unit</h3><p>Default for new entries. Switching converts every weight on screen.</p>` +
+        seg('unit', [['kg', 'KG'], ['lb', 'LB']], 'Weight unit') + `</section>` +
+      `<section class="opt"><h3>Rest timer</h3><p>Default countdown after each completed set.</p>` +
+        seg('rest', [45, 60, 90, 120, 150, 180].map(s => [s, fmtRest(s)]), 'Default rest time') + `</section>` +
+      `<section class="opt"><h3>Start rest automatically</h3><p>Begin the countdown when you tick a set.</p>` +
+        seg('autoRest', [[true, 'ON'], [false, 'OFF']], 'Start rest automatically') + `</section>` +
+      `<section class="opt"><h3>Chime</h3><p>Play a soft chime when rest is over.</p>` +
+        seg('sound', [[true, 'ON'], [false, 'OFF']], 'Chime') + `</section>` },
+    logout: { title: 'Log out', html: () => `<div class="doc">` +
+      `<p>Pocket Lift Log doesn't use accounts yet, so there's nothing to sign out of. Your log is kept only in this browser, on this device.</p>` +
+      `<p>To start fresh, or before you hand this device to someone else, erase the log. This removes every workout, PR and setting stored here.</p>` +
+      `<button type="button" class="danger" data-erase>Erase this device's log</button></div>` },
+    info: { title: 'App info', html: () => `<div class="doc">` +
+      `<p class="app-name">Pocket Lift Log</p><p class="stamp">Version 2.1 · November 2026</p>` +
+      `<p>A bullet-journal workout log. Write the lift, tick the set, rest, repeat. Everything stays on your device and works offline.</p></div>` +
+      `<nav class="dr-list">` + item('privacy', 'Privacy Policy') + item('terms', 'Terms &amp; Conditions') + `</nav>` },
+    privacy: { title: 'Privacy', html: () => `<div class="doc">` +
+      `<p class="stamp">Last updated 25 November 2026</p>` +
+      `<h3>What we collect</h3><p>Nothing is sent to us. The workouts, personal records and settings you enter are saved in your browser's local storage on this device. We have no server that receives them.</p>` +
+      `<h3>No tracking</h3><p>The app has no accounts, analytics, advertising or tracking cookies.</p>` +
+      `<h3>Third parties</h3><p>The app loads its typefaces from Google Fonts, so Google receives your IP address and browser details when the fonts load. If you open the app through a hosting service, that service's own privacy policy also applies.</p>` +
+      `<h3>Your control</h3><p>You can erase everything from Menu › Log out, or by clearing this site's data in your browser. Your log isn't backed up, so clearing site data or changing devices removes it.</p>` +
+      `<h3>Children</h3><p>The app isn't directed at children under 13.</p>` +
+      `<h3>Changes</h3><p>If this policy changes, the new version will appear here with a new date.</p></div>` },
+    terms: { title: 'Terms', html: () => `<div class="doc">` +
+      `<p class="stamp">Last updated 25 November 2026</p>` +
+      `<h3>Using the app</h3><p>Pocket Lift Log is a free tool for keeping your own training records. By using it you agree to these terms.</p>` +
+      `<h3>Not medical advice</h3><p>The app records the numbers you enter. It doesn't give medical, health or training advice. Talk to a qualified professional before starting a new program, and lift within your limits. You're responsible for how you train.</p>` +
+      `<h3>Your data</h3><p>Your log is stored only on your device. You're responsible for keeping it; we can't recover data that's been erased or lost.</p>` +
+      `<h3>No warranty</h3><ul><li>The app is provided "as is", without warranties of any kind.</li><li>To the extent the law allows, we aren't liable for injury, lost data or any other loss arising from its use.</li></ul>` +
+      `<h3>Changes</h3><p>We may update these terms. The current version will always be shown here with its date.</p></div>` },
+  };
+  function showView(keepScroll) {
+    const v = viewStack[viewStack.length - 1], top = drBody.scrollTop;
+    $('#drTitle').textContent = VIEWS[v].title;
+    drBody.innerHTML = VIEWS[v].html();
+    drBack.hidden = viewStack.length < 2;
+    drBody.scrollTop = keepScroll ? top : 0;
+    clearTimeout(eraseT);
+  }
+  function openDrawer() {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    state.unit = state.unit === 'kg' ? 'lb' : 'kg';
+    viewStack = ['menu'];
+    showView();
+    drawer.hidden = false; scrim.hidden = false;
+    void drawer.offsetWidth;
+    drawer.classList.add('open'); scrim.classList.add('open');
+    document.documentElement.style.overflow = 'hidden';
+    $('#drClose').focus();
+  }
+  function closeDrawer() {
+    if (drawer.hidden) return;
+    drawer.classList.remove('open'); scrim.classList.remove('open');
+    document.documentElement.style.overflow = '';
+    setTimeout(() => { if (!drawer.classList.contains('open')) { drawer.hidden = true; scrim.hidden = true; } }, 280);
+    $('#menuBtn').focus();
+  }
+  function setOption(key, raw) {
+    const val = key === 'rest' ? Number(raw) : (key === 'autoRest' || key === 'sound') ? raw === 'true' : raw;
+    if (state[key] === val) return;
+    state[key] = val;
+    if (key === 'unit') { recomputePRs(); render(); }
+    if (key === 'rest' && timer.state === 'idle') renderBar();
+    persist();
+  }
+  function eraseAll() {
+    undoData = { all: JSON.stringify(state) };
+    stopRest();
+    try { localStorage.removeItem(OLD_KEY); } catch (e) {}
+    state = normalize({ days: {} });
+    cur = todayKey();
+    recomputePRs();
     persist();
     render();
+    closeDrawer();
+    toast('Log erased from this device');
+  }
+  $('#menuBtn').addEventListener('click', openDrawer);
+  $('#drClose').addEventListener('click', closeDrawer);
+  scrim.addEventListener('click', closeDrawer);
+  drBack.addEventListener('click', () => { viewStack.pop(); showView(); });
+  drBody.addEventListener('click', (e) => {
+    const v = e.target.closest('[data-view]');
+    if (v) { viewStack.push(v.dataset.view); showView(); drBack.focus(); return; }
+    const o = e.target.closest('[data-opt]');
+    if (o) { setOption(o.dataset.opt, o.dataset.val); showView(true); return; }
+    const er = e.target.closest('[data-erase]');
+    if (er) {
+      if (er.classList.contains('armed')) { eraseAll(); return; }
+      er.classList.add('armed');
+      er.textContent = 'Tap again to erase everything';
+      clearTimeout(eraseT);
+      eraseT = setTimeout(() => { er.classList.remove('armed'); er.textContent = "Erase this device's log"; }, 4000);
+    }
+  });
+  drawer.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeDrawer(); return; }
+    if (e.key !== 'Tab') return; // keep focus inside the open menu
+    const f = [...drawer.querySelectorAll('button:not([hidden])')];
+    if (!f.length) return;
+    if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
   });
   $('#clearSample').addEventListener('click', () => {
     for (const k of Object.keys(state.days)) {
@@ -918,7 +1096,7 @@ input:focus, input:focus-visible { outline: none; }
   }, { passive: true });
   document.addEventListener('keydown', (e) => {
     const a = document.activeElement;
-    if (a && a.tagName === 'INPUT') return;
+    if (!drawer.hidden || (a && a.tagName === 'INPUT')) return;
     if (e.key === 'ArrowLeft') goTo(addDays(cur, -1), -1);
     else if (e.key === 'ArrowRight') goTo(addDays(cur, 1), 1);
   });
