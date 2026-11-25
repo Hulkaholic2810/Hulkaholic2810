@@ -38,7 +38,7 @@ struct Day: Codable, Equatable {
     var sampleTitle = false
 }
 
-struct Settings: Codable, Equatable {
+struct AppSettings: Codable, Equatable {
     var unit: WeightUnit = .kg
     var rest = 90
     var autoRest = true
@@ -51,7 +51,7 @@ struct Settings: Codable, Equatable {
 
 struct LogData: Codable, Equatable {
     var days: [String: Day] = [:]
-    var settings = Settings()
+    var settings = AppSettings()
     var timerEnd: Date?
     var timerDuration: Int?
 }
@@ -176,7 +176,11 @@ final class LogStore {
         guard !exs.isEmpty else { return "Blank page" }
         let sets = exs.flatMap(\.sets).filter { $0.reps != nil }
         let done = sets.filter(\.done)
-        let volume = done.reduce(0.0) { $0 + ($1.weight.map { shown($0, $1.unit) } ?? 0) * Double($1.reps ?? 0) }
+        var volume = 0.0
+        for s in done {
+            guard let w = s.weight, let r = s.reps else { continue }
+            volume += shown(w, s.unit) * Double(r)
+        }
         var parts = ["\(exs.count) exercise\(exs.count == 1 ? "" : "s")", "\(done.count)/\(sets.count) sets"]
         if volume > 0 { parts.append("\(Int(volume.rounded()).formatted()) \(unit.rawValue) moved") }
         return parts.joined(separator: " · ")
@@ -225,7 +229,7 @@ final class LogStore {
         let n = Self.norm(name)
         guard !n.isEmpty else { return nil }
         for k in data.days.keys.sorted(by: >) where k < current {
-            if let ex = data.days[k]?.exercises.first(where: { Self.norm($0.name) == n && $0.sets.contains { $0.reps != nil } }) {
+            if let ex = data.days[k]?.exercises.first(where: { ex in Self.norm(ex.name) == n && ex.sets.contains { $0.reps != nil } }) {
                 return (k, ex.sets.filter { $0.reps != nil })
             }
         }
@@ -287,7 +291,7 @@ final class LogStore {
     }
 
     func exerciseID(containing setID: UUID) -> UUID? {
-        day.exercises.first { $0.sets.contains { $0.id == setID } }?.id
+        day.exercises.first { ex in ex.sets.contains { $0.id == setID } }?.id
     }
 
     func addExercise() -> UUID {
@@ -344,7 +348,7 @@ final class LogStore {
 
     func removeSet(_ exID: UUID, _ setID: UUID) {
         let before = data
-        updateExercise(exID) { $0.sets.removeAll { $0.id == setID } }
+        updateExercise(exID) { ex in ex.sets.removeAll { $0.id == setID } }
         showToast("Set removed", undo: before)
     }
 
@@ -353,7 +357,7 @@ final class LogStore {
         guard let exID = exerciseID(containing: setID),
               let s = exercise(exID)?.sets.first(where: { $0.id == setID }),
               s.weight == nil, s.reps == nil else { return }
-        updateExercise(exID) { $0.sets.removeAll { $0.id == setID } }
+        updateExercise(exID) { ex in ex.sets.removeAll { $0.id == setID } }
     }
 
     func clearSamples() {

@@ -142,10 +142,10 @@ struct Choice<V: Hashable>: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 66), spacing: 0, alignment: .leading)], alignment: .leading, spacing: 0) {
             ForEach(options.indices, id: \.self) { i in
-                let (value, label) = options[i]
-                let on = value == selection
-                Button { pick(value) } label: {
-                    Text(on ? "[ \(label) ]" : label)
+                let option = options[i]
+                let on = option.0 == selection
+                Button { pick(option.0) } label: {
+                    Text(on ? "[ \(option.1) ]" : option.1)
                         .font(.mono(13, medium: on))
                         .foregroundStyle(on ? pal.ink : pal.slate)
                         .frame(minWidth: 44, minHeight: 44, alignment: .leading)
